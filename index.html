@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>操作無人機學自然｜3D 模擬實驗室</title>
+<style>
+:root{
+  --bg:#0b111c; --panel:#0f1826; --line:#1d2c42; --txt:#dfe9f5; --sub:#8fa6bd;
+  --acc:#22d3ee; --acc2:#0e7490;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{
+  display:flex;flex-direction:column;background:var(--bg);color:var(--txt);
+  font-family:"Microsoft JhengHei","Noto Sans TC","PingFang TC",system-ui,sans-serif;
+  overflow:hidden; overscroll-behavior:none;
+}
+header{
+  display:flex;align-items:center;gap:8px;padding:6px 10px;
+  border-bottom:1px solid var(--line);background:#0d1523;flex:0 0 auto;
+}
+header h1{font-size:15px;margin:0;white-space:nowrap;font-weight:700}
+header h1 small{color:var(--sub);font-weight:400}
+#tabs{display:flex;gap:6px;overflow-x:auto;flex:1;padding:2px;scrollbar-width:thin}
+#tabs::-webkit-scrollbar{height:5px}
+#tabs::-webkit-scrollbar-thumb{background:#22344c;border-radius:3px}
+.tab{
+  flex:0 0 auto;white-space:nowrap;padding:7px 13px;border-radius:999px;cursor:pointer;
+  background:#152134;border:1px solid #24344a;color:#9fb3c8;font-size:13px;font-family:inherit;
+}
+.tab.on{background:var(--acc2);color:#fff;border-color:var(--acc);font-weight:700}
+#fsBtn{
+  flex:0 0 auto;background:#152134;border:1px solid #2a3d57;color:var(--txt);
+  border-radius:8px;padding:7px 11px;cursor:pointer;font-size:13px;font-family:inherit;
+}
+#fsBtn:hover{border-color:var(--acc)}
+main{flex:1;display:flex;min-height:0}
+#stage{flex:1;position:relative;min-width:0;background:#000}
+canvas#c{width:100%;height:100%;display:block;touch-action:none}
+#hud{
+  position:absolute;top:10px;left:10px;max-width:min(62vw,260px);
+  background:rgba(8,14,24,.68);backdrop-filter:blur(4px);
+  border:1px solid #223349;border-radius:10px;padding:7px 10px;font-size:12px;
+  pointer-events:none;line-height:1.55;
+}
+.hr{display:flex;justify-content:space-between;gap:14px}
+.hr span{color:var(--sub)}
+.hr b{color:#7dd3fc;font-weight:600;text-align:right;white-space:nowrap}
+.hr.bad b{color:#fca5a5}
+.hr.good b{color:#86efac}
+#legend{
+  position:absolute;left:10px;bottom:10px;display:flex;gap:10px;flex-wrap:wrap;
+  font-size:12px;background:rgba(8,14,24,.55);border-radius:8px;padding:5px 9px;pointer-events:none;
+}
+.lg{display:flex;align-items:center;gap:4px;color:#c7d6e5}
+.lg i{width:10px;height:10px;border-radius:2px;display:inline-block}
+#banner{
+  position:absolute;top:10px;left:50%;transform:translateX(-50%);max-width:86%;
+  background:rgba(127,29,29,.92);border:1px solid #ef4444;color:#fecaca;
+  border-radius:10px;padding:7px 14px;font-size:13px;font-weight:700;display:none;
+  text-align:center;pointer-events:none;z-index:5;
+}
+#viewHint{
+  position:absolute;right:10px;bottom:10px;font-size:11px;color:#6b8299;
+  background:rgba(8,14,24,.5);border-radius:8px;padding:4px 8px;pointer-events:none;
+}
+#panel{
+  width:350px;flex:0 0 auto;overflow-y:auto;background:var(--panel);
+  border-left:1px solid var(--line);padding:12px 14px 24px;scrollbar-width:thin;
+}
+#panel::-webkit-scrollbar{width:6px}
+#panel::-webkit-scrollbar-thumb{background:#22344c;border-radius:3px}
+#panelHead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+#scTitle{font-size:15px;margin:0 0 8px;color:#e8f2fc;line-height:1.4}
+#panelToggle{
+  display:none;background:#152134;border:1px solid #2a3d57;color:var(--txt);
+  border-radius:8px;padding:4px 10px;cursor:pointer;font-size:13px;flex:0 0 auto;font-family:inherit;
+}
+details.know{
+  background:#0c1420;border:1px solid #1c2b40;border-radius:10px;
+  padding:8px 12px;margin:0 0 12px;font-size:13px;
+}
+details.know summary{cursor:pointer;font-weight:700;color:#9ddcf9}
+details.know ul{margin:8px 0 4px;padding-left:18px;line-height:1.7;color:#c6d4e3}
+details.know p.q{margin:8px 0 2px;color:#fbd38d;line-height:1.6}
+details.know b{color:#e8f2fc}
+.sec{margin-bottom:14px}
+.sec h3{font-size:13px;margin:0 0 8px;color:var(--sub);letter-spacing:1px}
+.actions{display:flex;flex-wrap:wrap;gap:6px}
+.abtn{
+  background:#152134;border:1px solid #2a3d57;color:var(--txt);border-radius:9px;
+  padding:8px 12px;cursor:pointer;font-size:13px;font-family:inherit;
+}
+.abtn:active{transform:scale(.96)}
+.abtn.on{background:var(--acc2);border-color:var(--acc);color:#fff;font-weight:700}
+.param{margin-bottom:10px}
+.param label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px;gap:8px}
+.param label em{font-style:normal;color:#c6d4e3;line-height:1.4}
+.param label .val{color:var(--acc);font-weight:700;white-space:nowrap}
+.param input[type=range]{width:100%;accent-color:var(--acc);height:22px;margin:0}
+.param select{
+  width:100%;background:#152134;color:var(--txt);border:1px solid #2a3d57;
+  border-radius:8px;padding:7px;font-size:13px;font-family:inherit;
+}
+.param .tgl{display:flex;align-items:center;justify-content:flex-start !important;gap:8px;font-size:13px;cursor:pointer}
+.param .tgl input{width:18px;height:18px;accent-color:var(--acc)}
+.bar{margin-bottom:8px}
+.bar .bl{display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px}
+.bar .bl span{color:#c6d4e3}
+.bar .bl b{color:#9ddcf9;font-weight:600}
+.bar .bt{height:9px;background:#0c1420;border-radius:5px;overflow:hidden;border:1px solid #1c2b40}
+.bar .bf{height:100%;border-radius:5px;transition:width .15s;min-width:0}
+footer#credit{font-size:11px;color:#546a82;margin-top:10px;line-height:1.6}
+body.fsmode header{display:none}
+@media (max-width:880px){
+  header h1 small{display:none}
+  header h1{font-size:13px}
+  main{flex-direction:column}
+  #panel{
+    width:auto;height:46%;border-left:none;border-top:1px solid var(--line);
+    padding:10px 14px 30px;
+  }
+  #panelToggle{display:block}
+  body.panel-min #panel{height:46px;overflow:hidden;padding-top:8px}
+  #hud{font-size:11px;padding:6px 8px}
+  #legend{font-size:11px;bottom:8px}
+  #viewHint{display:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>🛸 操作無人機學自然 <small>｜3D 模擬實驗室</small></h1>
+  <nav id="tabs"></nav>
+  <button id="fsBtn" title="全螢幕">⛶ 全螢幕</button>
+</header>
+<main>
+  <div id="stage">
+    <canvas id="c"></canvas>
+    <div id="hud"></div>
+    <div id="banner"></div>
+    <div id="legend"></div>
+    <div id="viewHint">🖱️ 拖曳旋轉｜滾輪縮放｜右鍵平移（觸控：單指轉、雙指縮放平移）</div>
+  </div>
+  <aside id="panel">
+    <div id="panelHead">
+      <h2 id="scTitle"></h2>
+      <button id="panelToggle">☰ 收合</button>
+    </div>
+    <details class="know" id="knowBox"><summary>📖 本堂知識點</summary><div id="know"></div></details>
+    <div class="sec" id="actionsSec"><h3>🎮 操 作</h3><div class="actions" id="actions"></div></div>
+    <div class="sec" id="dSec"><h3>🛩️ 無人機參數</h3><div id="dparams"></div></div>
+    <div class="sec" id="eSec"><h3>🌍 環境參數</h3><div id="eparams"></div></div>
+    <div class="sec" id="barsSec" style="display:none"><h3>📊 即時數據圖</h3><div id="bars"></div></div>
+    <footer id="credit">依據「操作無人機學自然」課程教案製作｜物理×地球科學 互動模擬教材<br>畫面中的力與氣流為教學示意，數值採用簡化模型計算。</footer>
+  </aside>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+'use strict';
+/* ============================================================
+   共用框架：渲染器、場景、無人機模型、力箭頭、粒子、UI 管理
+   ============================================================ */
+const $=(s)=>document.querySelector(s);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const D2R=Math.PI/180;
+const fmt=(n,d=1)=>Number.isFinite(n)?n.toFixed(d):'—';
+const UP=new THREE.Vector3(0,1,0), DOWN=new THREE.Vector3(0,-1,0);
+const COLORS={lift:0x66bb6a,gravity:0xef5350,thrust:0x42a5f5,drag:0xffa726,wind:0x4dd0e1,centri:0xab47bc,rel:0xf06292,torque:0xffee58};
+const LEGEND_NAMES={lift:'升力',gravity:'重力',thrust:'推力',drag:'阻力',wind:'風／氣流',centri:'向心力',rel:'相對氣流',torque:'力矩'};
+const GROUND_Y=0.1;
+
+const canvas=$('#c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+const camera=new THREE.PerspectiveCamera(55,2,0.1,600);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true; controls.dampingFactor=0.09;
+controls.maxPolarAngle=Math.PI*0.495; controls.minDistance=1.2; controls.maxDistance=90;
+const clock=new THREE.Clock();
+let scene=null, SC=null, P={}, ctxObj=null;
+
+function sizeRenderer(){
+  const w=canvas.clientWidth|0, h=canvas.clientHeight|0;
+  if(!w||!h)return;
+  if(canvas.width!==Math.floor(w*renderer.getPixelRatio())||canvas.height!==Math.floor(h*renderer.getPixelRatio())){
+    renderer.setSize(w,h,false);
+    camera.aspect=w/h; camera.updateProjectionMatrix();
+  }
+}
+
+function disposeScene(s){
+  if(!s)return;
+  s.traverse(o=>{
+    if(o.geometry)o.geometry.dispose();
+    if(o.material){
+      (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{
+        if(m.map)m.map.dispose(); m.dispose();
+      });
+    }
+  });
+}
+
+function baseScene(opt={}){
+  const s=new THREE.Scene();
+  const bg=opt.bg!==undefined?opt.bg:0x0e1626;
+  s.background=new THREE.Color(bg);
+  if(opt.fog!==false)s.fog=new THREE.Fog(bg,40,140);
+  s.add(new THREE.HemisphereLight(0xcfe8ff,0x1c2733,1.05));
+  const d=new THREE.DirectionalLight(0xffffff,0.85); d.position.set(6,12,4); s.add(d);
+  if(opt.ground!==false){
+    const g=new THREE.Mesh(new THREE.CircleGeometry(90,48),
+      new THREE.MeshStandardMaterial({color:opt.groundColor!==undefined?opt.groundColor:0x152a1d,roughness:1}));
+    g.rotation.x=-Math.PI/2; g.position.y=-0.02; s.add(g);
+    const grid=new THREE.GridHelper(80,80,0x2e4a3a,0x1f3038);
+    grid.material.transparent=true; grid.material.opacity=0.7; s.add(grid);
+  }
+  return s;
+}
+
+/* ---------- 文字貼圖（繁體中文標籤） ---------- */
+function textSprite(text,opt={}){
+  const fs=opt.fs||30, pad=opt.pad!==undefined?opt.pad:10;
+  const color=opt.color||'#ffffff', bg=opt.bg!==undefined?opt.bg:'rgba(8,15,26,0.72)';
+  const font=`bold ${fs}px "Microsoft JhengHei","Noto Sans TC",sans-serif`;
+  const mc=document.createElement('canvas'); let x=mc.getContext('2d');
+  x.font=font;
+  const tw=Math.ceil(x.measureText(text).width);
+  mc.width=tw+pad*2; mc.height=fs+pad*2;
+  x=mc.getContext('2d'); x.font=font;
+  if(bg){
+    x.fillStyle=bg;
+    const r=8,w=mc.width,h=mc.height;
+    x.beginPath();
+    x.moveTo(r,0);x.arcTo(w,0,w,h,r);x.arcTo(w,h,0,h,r);x.arcTo(0,h,0,0,r);x.arcTo(0,0,w,0,r);
+    x.fill();
+  }
+  x.fillStyle=color; x.textBaseline='middle';
+  x.fillText(text,pad,mc.height/2+1);
+  const tex=new THREE.CanvasTexture(mc); tex.minFilter=THREE.LinearFilter;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true}));
+  const k=(opt.scale||1)*0.0062;
+  sp.scale.set(mc.width*k,mc.height*k,1);
+  sp.renderOrder=20;
+  return sp;
+}
+
+/* ---------- 力箭頭（附中文標籤） ---------- */
+class ForceArrow{
+  constructor(sc,color,label,opt={}){
+    this.scale=opt.scale!==undefined?opt.scale:0.12;
+    this.max=opt.max!==undefined?opt.max:3.2;
+    this.a=new THREE.ArrowHelper(new THREE.Vector3(0,1,0),new THREE.Vector3(),1,color,0.24,0.13);
+    this.l=textSprite(label,{color:'#'+new THREE.Color(color).getHexString(),fs:26});
+    sc.add(this.a); sc.add(this.l);
+    this.hide();
+  }
+  set(origin,dir,mag){
+    const len=clamp(Math.abs(mag)*this.scale,0,this.max);
+    if(len<0.09||!isFinite(len)){this.hide();return;}
+    this.a.visible=true; this.l.visible=true;
+    const d=dir.clone().normalize();
+    this.a.position.copy(origin);
+    this.a.setDirection(d);
+    this.a.setLength(len,Math.min(0.28,len*0.4),0.14);
+    this.l.position.copy(origin).addScaledVector(d,len+0.3);
+  }
+  hide(){this.a.visible=false;this.l.visible=false;}
+}
+
+/* ---------- 四軸無人機模型 ---------- */
+function createDrone(){
+  const g=new THREE.Group();
+  const M=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:0.55,metalness:0.2},o));
+  const body=new THREE.Mesh(new THREE.BoxGeometry(0.46,0.13,0.34),M(0x455a64));
+  body.position.y=0.05; g.add(body);
+  const canopy=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.09,0.2),M(0x00acc1));
+  canopy.position.set(0.07,0.15,0); g.add(canopy);
+  const nose=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.06,0.12),M(0xef5350));
+  nose.position.set(0.26,0.06,0); g.add(nose);
+  const props=[],bladeMats=[];
+  for(let i=0;i<4;i++){
+    const ang=Math.PI/4+i*Math.PI/2;
+    const ax=Math.cos(ang),az=Math.sin(ang);
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.045,0.07),M(0x263238));
+    arm.position.set(ax*0.29,0.05,az*0.29); arm.rotation.y=-ang; g.add(arm);
+    const motor=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.055,0.075,12),M(0x18222b));
+    motor.position.set(ax*0.5,0.1,az*0.5); g.add(motor);
+    const pg=new THREE.Group(); pg.position.set(ax*0.5,0.155,az*0.5);
+    const bm=M(0xb0bec5); bladeMats.push(bm);
+    const blade=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.014,0.05),bm); pg.add(blade);
+    const disc=new THREE.Mesh(new THREE.CircleGeometry(0.21,20),
+      new THREE.MeshBasicMaterial({color:0x80deea,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));
+    disc.rotation.x=-Math.PI/2; disc.position.y=0.01; pg.add(disc);
+    g.add(pg);
+    props.push({pg,disc,dir:(i%2?1:-1),ax,az});
+  }
+  for(const sd of[-1,1]){
+    const skid=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.03,0.035),M(0x37474f));
+    skid.position.set(0,-0.085,sd*0.15); g.add(skid);
+    for(const lx of[-0.12,0.12]){
+      const leg=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.09,0.03),M(0x37474f));
+      leg.position.set(lx,-0.035,sd*0.15); g.add(leg);
+    }
+  }
+  g.userData={
+    props,bladeMats,
+    spin(dt,th){
+      th=clamp(th,0,1);
+      for(const p of props){
+        p.pg.rotation.y+=p.dir*dt*(3+th*75);
+        p.disc.material.opacity=th*0.4;
+        p.disc.scale.setScalar(1);
+      }
+    }
+  };
+  return g;
+}
+
+/* ---------- 風／氣流粒子（短線段） ---------- */
+class WindStreaks{
+  constructor(sc,n,box,color){
+    this.n=n; this.box=box;
+    this.pos=new Float32Array(n*6);
+    this.pts=[];
+    for(let i=0;i<n;i++)this.pts.push(this.rand());
+    this.geo=new THREE.BufferGeometry();
+    this.geo.setAttribute('position',new THREE.BufferAttribute(this.pos,3));
+    this.obj=new THREE.LineSegments(this.geo,
+      new THREE.LineBasicMaterial({color:color!==undefined?color:0x4dd0e1,transparent:true,opacity:0.5}));
+    this.obj.frustumCulled=false;
+    sc.add(this.obj);
+    this._v=new THREE.Vector3();
+  }
+  rand(){
+    const b=this.box;
+    return new THREE.Vector3(
+      b.min.x+Math.random()*(b.max.x-b.min.x),
+      b.min.y+Math.random()*(b.max.y-b.min.y),
+      b.min.z+Math.random()*(b.max.z-b.min.z));
+  }
+  update(dt,velFn){
+    const b=this.box,v=this._v;
+    for(let i=0;i<this.n;i++){
+      const p=this.pts[i];
+      v.copy(velFn(p));
+      p.addScaledVector(v,dt);
+      if(p.x<b.min.x||p.x>b.max.x||p.y<b.min.y||p.y>b.max.y||p.z<b.min.z||p.z>b.max.z){
+        p.copy(this.rand());v.copy(velFn(p));
+      }
+      const sp=v.length();
+      const t=sp>0.01?Math.min(0.3,0.05+sp*0.022)/sp:0;
+      this.pos[i*6]=p.x; this.pos[i*6+1]=p.y; this.pos[i*6+2]=p.z;
+      this.pos[i*6+3]=p.x-v.x*t; this.pos[i*6+4]=p.y-v.y*t; this.pos[i*6+5]=p.z-v.z*t;
+    }
+    this.geo.attributes.position.needsUpdate=true;
+  }
+}
+
+/* ---------- 大氣物理公式 ---------- */
+function magnusEs(T){return 6.112*Math.exp(17.62*T/(243.12+T));}          // 飽和水氣壓 hPa
+function dewPoint(T,RH){const g=Math.log(Math.max(RH,1)/100)+17.62*T/(243.12+T);return 243.12*g/(17.62-g);}
+function airDensity(phPa,T,RH){const e=(RH/100)*magnusEs(T);return phPa*100/(287.05*(T+273.15))*(1-0.378*e/phPa);}
+function isaPressure(h){return 1013.25*Math.pow(1-0.0065*h/288.15,5.2559);}
+
+/* ---------- UI：警告、圖例、HUD、長條圖 ---------- */
+const bannerEl=$('#banner');let lastWarn=null;
+function warn(msg){
+  if(msg===lastWarn)return; lastWarn=msg;
+  if(msg){bannerEl.textContent=msg;bannerEl.style.display='block';}
+  else bannerEl.style.display='none';
+}
+function setLegend(keys){
+  $('#legend').innerHTML=(keys||[]).map(k=>
+    `<span class="lg"><i style="background:#${new THREE.Color(COLORS[k]).getHexString()}"></i>${LEGEND_NAMES[k]}</span>`).join('');
+}
+const hudEl=$('#hud');
+function renderHUD(rows){
+  hudEl.innerHTML=rows.map(r=>`<div class="hr ${r[2]||''}"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+}
+const barsEl=$('#bars'),barsSec=$('#barsSec');
+let barKey='',barTick=0;
+function setBars(bars){
+  if(barTick++%6)return;
+  barsSec.style.display='block';
+  const key=bars.map(b=>b.label).join('|');
+  if(key!==barKey){
+    barKey=key;
+    barsEl.innerHTML=bars.map((b,i)=>
+      `<div class="bar"><div class="bl"><span>${b.label}</span><b id="bv${i}"></b></div>
+       <div class="bt"><div class="bf" id="bf${i}" style="background:${b.color}"></div></div></div>`).join('');
+  }
+  bars.forEach((b,i)=>{
+    const bv=document.getElementById('bv'+i),bf=document.getElementById('bf'+i);
+    if(bv)bv.textContent=b.text;
+    if(bf)bf.style.width=clamp(b.frac*100,0,100)+'%';
+  });
+}
+
+/* ---------- 參數面板建構 ---------- */
+function buildPanel(sc){
+  $('#scTitle').textContent=sc.title;
+  $('#know').innerHTML=sc.knowledge;
+  $('#knowBox').open=window.innerWidth>880;
+  const acts=$('#actions');
+  acts.innerHTML='';
+  $('#actionsSec').style.display=(sc.actions&&sc.actions.length)?'block':'none';
+  (sc.actions||[]).forEach(a=>{
+    const b=document.createElement('button');
+    b.className='abtn'; b.textContent=a.label;
+    b.onclick=()=>{
+      sc.action(a.id,ctxObj);
+      if(!a.momentary){
+        [...acts.children].forEach(x=>x.classList.remove('on'));
+        b.classList.add('on');
+      }
+    };
+    if(a.on)b.classList.add('on');
+    acts.appendChild(b);
+  });
+  const dEl=$('#dparams'),eEl=$('#eparams');
+  dEl.innerHTML='';eEl.innerHTML='';
+  P={};
+  let dCount=0,eCount=0;
+  sc.params.forEach(def=>{
+    const wrap=document.createElement('div');wrap.className='param';
+    P[def.id]=def.value;
+    if(def.type==='select'){
+      wrap.innerHTML=`<label><em>${def.label}</em></label>`;
+      const sel=document.createElement('select');
+      def.options.forEach(o=>{
+        const op=document.createElement('option');op.value=o.v;op.textContent=o.label;
+        if(o.v===def.value)op.selected=true;
+        sel.appendChild(op);
+      });
+      sel.oninput=()=>{P[def.id]=sel.value;};
+      wrap.appendChild(sel);
+    }else if(def.type==='toggle'){
+      wrap.innerHTML=`<label class="tgl"><input type="checkbox" ${def.value?'checked':''}><em>${def.label}</em></label>`;
+      wrap.querySelector('input').oninput=e=>{P[def.id]=e.target.checked;};
+    }else{
+      wrap.innerHTML=`<label><em>${def.label}</em><span class="val"></span></label>
+        <input type="range" min="${def.min}" max="${def.max}" step="${def.step}" value="${def.value}">`;
+      const val=wrap.querySelector('.val'),inp=wrap.querySelector('input');
+      const show=v=>{val.textContent=(def.fmt?def.fmt(v):v)+(def.unit||'');};
+      show(def.value);
+      inp.oninput=()=>{P[def.id]=parseFloat(inp.value);show(P[def.id]);};
+    }
+    if(def.env){eEl.appendChild(wrap);eCount++;}
+    else{dEl.appendChild(wrap);dCount++;}
+  });
+  $('#dSec').style.display=dCount?'block':'none';
+  $('#eSec').style.display=eCount?'block':'none';
+  barsSec.style.display='none';barKey='';barsEl.innerHTML='';
+}
+
+/* ---------- 分頁切換 ---------- */
+function selectScenario(idx){
+  if(scene)disposeScene(scene);
+  SC=SCENARIOS[idx];
+  scene=baseScene(SC.sceneOpt||{});
+  ctxObj={scene,camera,controls,warn,setBars,setLegend};
+  buildPanel(SC);
+  SC.setup(ctxObj);
+  const cam=SC.camera||{pos:[6,4,8],target:[0,1.5,0]};
+  camera.position.set(cam.pos[0],cam.pos[1],cam.pos[2]);
+  controls.target.set(cam.target[0],cam.target[1],cam.target[2]);
+  setLegend(SC.legend||[]);
+  warn(null);
+  [...$('#tabs').children].forEach((t,i)=>t.classList.toggle('on',i===idx));
+}
+
+/* ============================================================
+   ① 第1堂：力與運動（牛頓運動定律）
+   ============================================================ */
+const sc1={
+  tab:'① 力與運動',
+  title:'第1堂｜物理：力與運動（牛頓運動定律與力的作用）',
+  legend:['lift','gravity','thrust','drag'],
+  camera:{pos:[4.5,3.2,7.5],target:[0,2,0]},
+  knowledge:`<ul>
+    <li><b>牛頓第一定律（慣性）</b>：懸停時「升力＝重力」，合力為零，無人機維持原本的運動狀態。</li>
+    <li><b>牛頓第二定律 F=ma</b>：要加速前飛，螺旋槳須多提供水平推力分量 → 機身前傾；急煞停時反向 → 機身後仰。</li>
+    <li><b>牛頓第三定律</b>：旋翼向下推空氣（作用力），空氣同時向上推旋翼（反作用力）＝升力來源。</li>
+    <li><b>斷電測試</b>：推力消失、只剩重力 → 自由落體。</li></ul>
+    <p class="q">💭 試試看：把重力調成月球（1.6）再懸停，觀察升力箭頭變多短？質量加倍後急煞停，煞停距離有何變化？</p>`,
+  params:[
+    {id:'m',label:'機體質量',min:0.3,max:2,step:0.05,value:0.8,unit:' kg'},
+    {id:'vT',label:'目標前飛速度',min:1,max:8,step:0.5,value:4,unit:' m/s'},
+    {id:'hT',label:'懸停高度',min:1,max:6,step:0.5,value:2.5,unit:' m'},
+    {id:'g',label:'重力加速度（月球1.6／火星3.7／地球9.8）',min:1,max:25,step:0.1,value:9.8,unit:' m/s²',env:true},
+  ],
+  actions:[
+    {id:'takeoff',label:'🛫 起飛'},{id:'hover',label:'🎯 懸停'},{id:'fwd',label:'➡️ 前飛'},
+    {id:'brake',label:'🛑 急煞停'},{id:'cut',label:'⚡ 斷電'},{id:'reset',label:'🔄 重置',momentary:true}],
+  setup(c){
+    this.O={};
+    const O=this.O;
+    O.drone=createDrone(); O.drone.position.y=GROUND_Y; c.scene.add(O.drone);
+    const pad=new THREE.Mesh(new THREE.RingGeometry(0.5,0.7,32),
+      new THREE.MeshBasicMaterial({color:0x22d3ee,side:THREE.DoubleSide,transparent:true,opacity:0.5}));
+    pad.rotation.x=-Math.PI/2;pad.position.y=0.001;c.scene.add(pad);
+    O.arr={
+      lift:new ForceArrow(c.scene,COLORS.lift,'升力'),
+      grav:new ForceArrow(c.scene,COLORS.gravity,'重力 mg'),
+      thr:new ForceArrow(c.scene,COLORS.thrust,'推力（水平分量）'),
+      drag:new ForceArrow(c.scene,COLORS.drag,'空氣阻力'),
+    };
+    this.S={mode:'ground',x:0,y:GROUND_Y,vx:0,vy:0,tilt:0,power:true};
+  },
+  action(id){
+    const S=this.S;
+    if(id==='reset'){S.mode='ground';S.x=0;S.y=GROUND_Y;S.vx=0;S.vy=0;S.tilt=0;S.power=true;}
+    else if(id==='cut'){S.power=false;S.mode='ballistic';}
+    else{S.power=true;S.mode=id;}
+  },
+  update(dt,p,c){
+    const S=this.S,O=this.O,m=p.m,g=p.g;
+    const drag=0.14*S.vx*Math.abs(S.vx);
+    let Tv=0,Th=0,aHreq=0;
+    if(S.power){
+      let targetH=(S.mode==='ground')?0:p.hT;
+      if(S.mode==='takeoff'&&(S.y-GROUND_Y)>=p.hT-0.05)S.mode='hover';
+      const ev=targetH-(S.y-GROUND_Y);
+      let aV=(S.mode==='ground')?-1:clamp(ev*2.2-S.vy*2.6,-0.6*g,0.8*g);
+      Tv=Math.max(0,m*(g+aV));
+      if(S.mode==='ground')Tv=0;
+      const vTgt=(S.mode==='fwd')?p.vT:0;
+      aHreq=clamp((vTgt-S.vx)*(S.mode==='brake'?3.2:1.5),-0.65*g,0.65*g);
+      if(S.mode==='ground')aHreq=0;
+      Th=m*aHreq+drag;
+    }
+    const aX=(Th-drag)/m, aY=Tv/m-g;
+    S.vx+=aX*dt; S.vy+=aY*dt;
+    S.x+=S.vx*dt; S.y+=S.vy*dt;
+    if(S.y<=GROUND_Y){
+      S.y=GROUND_Y;
+      if(S.vy<-0.01){S.vy=0;S.vx*=0.5;}
+      if(!S.power)S.mode='crashed';
+      if(S.mode==='ground'||S.mode==='crashed')S.vx*=0.8;
+    }
+    if(S.x>9)S.x=-9; if(S.x<-9)S.x=9;
+    const tiltT=S.power?Math.atan2(m*aHreq,Math.max(Tv,0.01)):0;
+    S.tilt+=(clamp(tiltT,-0.5,0.5)-S.tilt)*Math.min(1,dt*6);
+    O.drone.position.set(S.x,S.y,0);
+    O.drone.rotation.z=-S.tilt;
+    O.drone.userData.spin(dt,S.power?clamp(Tv/(2*m*9.8),0.06,1):0);
+    const o=new THREE.Vector3(S.x,S.y+0.15,0);
+    O.arr.lift.set(o,UP,Tv);
+    O.arr.grav.set(o,DOWN,m*g);
+    O.arr.thr.set(o,new THREE.Vector3(Th>=0?1:-1,0,0),Math.abs(Th-drag)<0.02&&S.mode!=='fwd'?0:Math.abs(Th));
+    O.arr.drag.set(o,new THREE.Vector3(S.vx>=0?-1:1,0,0),Math.abs(drag));
+    const net=Math.hypot(Th-drag,Tv-m*g);
+    const balanced=S.power&&net<0.35&&(S.y-GROUND_Y)>0.3;
+    const onGround=(S.y-GROUND_Y)<0.01&&Math.abs(S.vx)<0.05;
+    if(!S.power&&S.mode==='ballistic')c.warn('⚡ 斷電！推力消失 → 只剩重力作用（自由落體）');
+    else if(S.mode==='crashed')c.warn('💥 已墜地！（實驗時記得鋪軟墊）按「重置」或「起飛」重來');
+    else c.warn(null);
+    return [
+      ['高度',fmt(S.y-GROUND_Y,2)+' m'],
+      ['水平速度',fmt(S.vx,2)+' m/s'],
+      ['總升力(推力)',fmt(Tv,1)+' N'],
+      ['重力 mg',fmt(m*g,1)+' N'],
+      ['機身傾角',fmt(S.tilt/D2R,1)+'°'],
+      ['合力狀態',onGround?'靜止（地面支撐）':(balanced?'≈0（平衡・慣性）':'≠0（加減速中）'),(balanced||onGround)?'good':'bad'],
+    ];
+  }
+};
+
+/* ============================================================
+   ② 第2堂：升力原理（柏努利定律、連續性定理）
+   ============================================================ */
+const sc2={
+  tab:'② 升力原理',
+  title:'第2堂｜物理：流體力學與空氣動力學（柏努利定律）',
+  legend:['lift','wind'],
+  sceneOpt:{ground:false,bg:0x0c1524},
+  camera:{pos:[0.5,2.2,7],target:[0,1.6,0]},
+  knowledge:`<ul>
+    <li><b>翼型（槳葉剖面）</b>：上凸下平 → 上方氣流路徑長、<b>流速快</b>；下方流速慢。</li>
+    <li><b>柏努利定律</b>：P + ½ρV² + ρgh ＝ 常數 →「流速快處，壓力小」。</li>
+    <li><b>升力來源</b>：下表面壓力＞上表面壓力，壓力差 ΔP≈½ρ(V上²−V下²) 的合力即升力。</li>
+    <li><b>連續性定理</b>：A₁V₁＝A₂V₂，截面積小處流速大（可對照氣流被翼面擠壓變快）。</li></ul>
+    <p class="q">💭 試試看：把彎度調到 0、攻角調成負值，升力會怎樣？把空氣密度調低（模擬高山），升力有何變化？</p>`,
+  params:[
+    {id:'camber',label:'翼型彎度（上凸程度）',min:0,max:12,step:0.5,value:6,unit:' %'},
+    {id:'aoa',label:'攻角（翼面與氣流的夾角）',min:-5,max:15,step:0.5,value:4,unit:'°'},
+    {id:'V',label:'氣流速度（相當於槳葉轉速）',min:2,max:30,step:0.5,value:12,unit:' m/s',env:true},
+    {id:'rho',label:'空氣密度',min:0.6,max:1.3,step:0.01,value:1.23,unit:' kg/m³',env:true},
+    {type:'toggle',id:'zones',label:'顯示高／低壓力區',value:true},
+  ],
+  actions:[],
+  action(){},
+  setup(c){
+    const O=this.O={};
+    c.scene.fog=null;
+    O.foil=new THREE.Group(); O.foil.position.set(0,1.6,0); c.scene.add(O.foil);
+    O.lastCamber=-1;
+    O.zoneU=new THREE.Mesh(new THREE.PlaneGeometry(3.6,1.15),
+      new THREE.MeshBasicMaterial({color:0x29b6f6,transparent:true,opacity:0.13,side:THREE.DoubleSide,depthWrite:false}));
+    O.zoneU.position.set(0,2.6,0); c.scene.add(O.zoneU);
+    O.zoneD=O.zoneU.clone();
+    O.zoneD.material=new THREE.MeshBasicMaterial({color:0xff9800,transparent:true,opacity:0.13,side:THREE.DoubleSide,depthWrite:false});
+    O.zoneD.position.set(0,0.72,0); c.scene.add(O.zoneD);
+    O.lblU=textSprite('低壓區：流速快 → 壓力小',{color:'#81d4fa'}); O.lblU.position.set(0,3.35,0); c.scene.add(O.lblU);
+    O.lblD=textSprite('高壓區：流速慢 → 壓力大',{color:'#ffcc80'}); O.lblD.position.set(0,0.05,0); c.scene.add(O.lblD);
+    O.lblFlow=textSprite('→ 氣流方向 →',{color:'#4dd0e1',bg:null}); O.lblFlow.position.set(-2.6,4,0); c.scene.add(O.lblFlow);
+    O.lift=new ForceArrow(c.scene,COLORS.lift,'升力',{scale:0.0045,max:2.4});
+    const N=this.N=120;
+    O.parts=[];
+    for(let i=0;i<N;i++)O.parts.push({t:Math.random(),lane:i%8});
+    O.pp=new Float32Array(N*3);
+    const cols=new Float32Array(N*3);
+    const cu=new THREE.Color(0x4dd0e1),cd=new THREE.Color(0xffb74d);
+    for(let i=0;i<N;i++){
+      const cc=(i%8)<4?cu:cd;
+      cols[i*3]=cc.r;cols[i*3+1]=cc.g;cols[i*3+2]=cc.b;
+    }
+    O.geo=new THREE.BufferGeometry();
+    O.geo.setAttribute('position',new THREE.BufferAttribute(O.pp,3));
+    O.geo.setAttribute('color',new THREE.BufferAttribute(cols,3));
+    O.points=new THREE.Points(O.geo,new THREE.PointsMaterial({size:0.085,vertexColors:true,transparent:true,opacity:0.95}));
+    O.points.frustumCulled=false;
+    c.scene.add(O.points);
+  },
+  buildFoil(camberPct){
+    const O=this.O;
+    while(O.foil.children.length){
+      const ch=O.foil.children.pop();
+      if(ch.geometry)ch.geometry.dispose();
+      if(ch.material)ch.material.dispose();
+    }
+    const m=camberPct/100,pp=0.4,t=0.13,chord=2.4;
+    const up=[],lo=[];
+    for(let i=0;i<=36;i++){
+      const x=i/36;
+      const yc=x<pp? m/(pp*pp)*(2*pp*x-x*x) : m/((1-pp)*(1-pp))*((1-2*pp)+2*pp*x-x*x);
+      const yt=5*t*(0.2969*Math.sqrt(x)-0.126*x-0.3516*x*x+0.2843*x*x*x-0.1036*x*x*x*x);
+      up.push([x*chord-chord/2,(yc+yt)*chord]);
+      lo.push([x*chord-chord/2,(yc-yt)*chord]);
+    }
+    const sh=new THREE.Shape();
+    sh.moveTo(up[0][0],up[0][1]);
+    for(const q of up)sh.lineTo(q[0],q[1]);
+    for(let i=lo.length-1;i>=0;i--)sh.lineTo(lo[i][0],lo[i][1]);
+    const geo=new THREE.ExtrudeGeometry(sh,{depth:1.4,bevelEnabled:false});
+    geo.translate(0,0,-0.7);
+    O.foil.add(new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:0x90a4ae,roughness:0.35,metalness:0.45})));
+    O.lastCamber=camberPct;
+  },
+  update(dt,p,c){
+    const O=this.O;
+    if(O.lastCamber!==p.camber)this.buildFoil(p.camber);
+    O.foil.rotation.z=-p.aoa*D2R;
+    const su=clamp(1+p.camber*0.05+p.aoa*0.02,0.7,2.2);
+    const sl=clamp(1-0.3*(su-1),0.5,1.3);
+    const Vu=p.V*su, Vl=p.V*sl;
+    const dq=0.5*p.rho*(Vu*Vu-Vl*Vl);          // 壓力差 Pa（每 m²）
+    const Ltot=dq*3.36;                          // 翼面積 2.4×1.4 m²
+    for(let i=0;i<this.N;i++){
+      const pt=O.parts[i],above=pt.lane<4,off=(pt.lane%4)*0.17;
+      pt.t+=p.V*(above?su:sl)*0.028*dt;
+      if(pt.t>1)pt.t-=1;
+      const x=-3+pt.t*6;
+      const w=Math.max(0,1-(x*x)/(1.65*1.65));
+      let y;
+      if(above)y=0.16+off+w*(0.3+p.camber*0.028+Math.max(p.aoa,0)*0.014);
+      else y=-(0.12+off)-w*(0.14+Math.max(p.aoa,0)*0.006);
+      O.pp[i*3]=x;O.pp[i*3+1]=1.6+y;O.pp[i*3+2]=(pt.lane%2?0.35:-0.35);
+    }
+    O.geo.attributes.position.needsUpdate=true;
+    const zOn=p.zones&&dq>1;
+    O.zoneU.visible=O.lblU.visible=zOn;
+    O.zoneD.visible=O.lblD.visible=zOn;
+    if(zOn){
+      const k=clamp(Math.abs(dq)/260,0.06,0.4);
+      O.zoneU.material.opacity=k;O.zoneD.material.opacity=k;
+    }
+    O.lift.set(new THREE.Vector3(0,1.75,0),dq>=0?UP:DOWN,Math.abs(Ltot));
+    c.warn(dq<0?'⚠️ 負攻角＋無彎度 → 壓力差反轉，翼面被往下壓！':null);
+    return [
+      ['上表面流速 V上',fmt(Vu,1)+' m/s'],
+      ['下表面流速 V下',fmt(Vl,1)+' m/s'],
+      ['壓力差 ΔP',fmt(dq,0)+' Pa'],
+      ['翼面升力',fmt(Ltot,0)+' N',dq>0?'good':'bad'],
+      ['柏努利','流速快 → 壓力小'],
+    ];
+  }
+};
+
+/* ============================================================
+   ③ 第3堂：摩擦力與阻力（風洞模式）
+   ============================================================ */
+const sc3={
+  tab:'③ 摩擦與阻力',
+  title:'第3堂｜物理：摩擦力與阻力（四種空氣阻力）',
+  legend:['drag','thrust','wind'],
+  sceneOpt:{bg:0x0c1524},
+  camera:{pos:[4,3,6.5],target:[0,1.6,0]},
+  knowledge:`<ul>
+    <li><b>摩擦阻力</b>：空氣黏性摩擦機體表面，表面越粗糙越大。</li>
+    <li><b>形狀阻力</b>：機身前後的壓力差（像逆風走路的感覺），迎風面積越大越大。</li>
+    <li><b>誘導阻力</b>：產生升力的「代價」（翼尖渦流），<b>速度越慢反而越大</b>。</li>
+    <li><b>干擾阻力</b>：機身、機臂交界處氣流互相干擾產生。</li>
+    <li>阻力大 → 需要更大推力 → 耗電快、續航短。這就是競速機做成流線型的原因。</li></ul>
+    <p class="q">💭 試試看：勾選「加裝紙板」再把速度調高，哪一種阻力暴增？速度很慢時哪種阻力最大？</p>`,
+  params:[
+    {type:'toggle',id:'boards',label:'加裝紙板（增加迎風面積）',value:false},
+    {id:'extraA',label:'紙板面積',min:0.01,max:0.08,step:0.005,value:0.04,unit:' m²'},
+    {id:'rough',label:'表面粗糙度',min:0,max:100,step:1,value:10,unit:' %'},
+    {id:'V',label:'飛行速度',min:0.5,max:20,step:0.5,value:8,unit:' m/s',env:true},
+    {id:'rho',label:'空氣密度',min:0.7,max:1.3,step:0.01,value:1.23,unit:' kg/m³',env:true},
+  ],
+  actions:[],
+  action(){},
+  setup(c){
+    const O=this.O={};
+    O.drone=createDrone();O.drone.position.set(0,1.6,0);c.scene.add(O.drone);
+    O.boards=[];
+    for(const sd of[-1,1]){
+      const b=new THREE.Mesh(new THREE.PlaneGeometry(0.42,0.34),
+        new THREE.MeshStandardMaterial({color:0xa1887f,roughness:0.95,side:THREE.DoubleSide}));
+      b.position.set(0,0.16,sd*0.3);b.rotation.y=Math.PI/2;
+      b.visible=false;O.drone.add(b);O.boards.push(b);
+    }
+    O.streaks=new WindStreaks(c.scene,150,
+      new THREE.Box3(new THREE.Vector3(-6,0.3,-3),new THREE.Vector3(6,3.4,3)));
+    O.dragA=new ForceArrow(c.scene,COLORS.drag,'總阻力',{scale:0.25});
+    O.thrA=new ForceArrow(c.scene,COLORS.thrust,'推力',{scale:0.25});
+    O.lbl=textSprite('（風洞視角：機身不動，空氣流過）',{color:'#8fa6bd',fs:24});
+    O.lbl.position.set(0,3.7,0);c.scene.add(O.lbl);
+    this._v=new THREE.Vector3();
+  },
+  update(dt,p,c){
+    const O=this.O,V=p.V;
+    O.boards.forEach(b=>{
+      b.visible=p.boards;
+      const s=Math.sqrt(p.extraA/0.04);
+      b.scale.set(s,s,1);
+    });
+    const A=0.03+(p.boards?p.extraA:0);
+    const q=0.5*p.rho*V*V;
+    const Df=q*0.05*(0.4+p.rough/100*2.6);
+    const Dp=q*A*1.15*(p.boards?1.25:1);
+    const Di=4.5/Math.max(V,0.8)*(1.225/p.rho);
+    const Dn=0.09*(Df+Dp);
+    const D=Df+Dp+Di+Dn;
+    const power=D*V+95;
+    const endur=2400/power*(40/40);
+    O.drone.rotation.z=-clamp(Math.atan2(D,0.8*9.8),0,0.45);
+    O.drone.userData.spin(dt,clamp(0.35+D*0.04,0,1));
+    const vv=this._v;
+    O.streaks.update(dt,pt=>{
+      vv.set(-V,0,0);
+      const dx=pt.x,dy=pt.y-1.75,dz=pt.z;
+      const r2=dx*dx+dy*dy+dz*dz;
+      if(r2<1.2){vv.y+=dy>0?V*0.25:-V*0.25;vv.z+=dz>0?V*0.15:-V*0.15;}
+      if(p.boards&&dx<0&&dx>-2.5&&Math.abs(dy)<0.8&&Math.abs(dz)<1){
+        vv.y+=Math.sin(pt.x*4+performance.now()*0.004)*V*0.3;
+        vv.z+=Math.cos(pt.x*3+performance.now()*0.005)*V*0.3;
+      }
+      return vv;
+    });
+    const o=new THREE.Vector3(0,1.75,0);
+    O.dragA.set(o,new THREE.Vector3(-1,0,0),D);
+    O.thrA.set(o,new THREE.Vector3(1,0,0),D);
+    c.setBars([
+      {label:'摩擦阻力（表面粗糙）',text:fmt(Df,2)+' N',frac:Df/8,color:'#ef9a9a'},
+      {label:'形狀阻力（迎風面積）',text:fmt(Dp,2)+' N',frac:Dp/8,color:'#ffa726'},
+      {label:'誘導阻力（升力代價，低速大）',text:fmt(Di,2)+' N',frac:Di/8,color:'#ce93d8'},
+      {label:'干擾阻力（部件交界）',text:fmt(Dn,2)+' N',frac:Dn/8,color:'#80cbc4'},
+      {label:'總阻力',text:fmt(D,2)+' N',frac:D/12,color:'#4dd0e1'},
+    ]);
+    c.warn(p.boards&&V>13?'⚠️ 加裝紙板後高速飛行：形狀阻力暴增，續航大幅縮短！':null);
+    return [
+      ['飛行速度',fmt(V,1)+' m/s'],
+      ['總阻力',fmt(D,2)+' N'],
+      ['需求功率',fmt(power,0)+' W'],
+      ['預估續航',fmt(endur,1)+' 分鐘',endur<18?'bad':'good'],
+    ];
+  }
+};
+
+/* ============================================================
+   ④ 第4堂：重心、力矩與圓周運動
+   ============================================================ */
+const sc4={
+  tab:'④ 重心與圓周',
+  title:'第4堂｜物理：重心、力矩與圓周運動（穩定與平衡）',
+  legend:['lift','centri','torque'],
+  camera:{pos:[5,4,7],target:[0,1.8,0]},
+  knowledge:`<ul>
+    <li><b>平衡條件</b>：合力＝0 且 <b>合力矩＝0</b>。配重偏離重心 → 產生額外力矩（力矩＝力×力臂）→ 機身向配重側傾斜。</li>
+    <li><b>飛控補償</b>：無人機會自動加快「對側馬達」轉速，產生反向力矩來恢復平衡。</li>
+    <li><b>圓周運動</b>：等速率繞圈仍是加速度運動！角速度 ω=2π/T、向心加速度 a=ω²r、向心力 F=ma，由「升力的水平分量」提供 → 機身必須向圓心傾斜。</li>
+    <li><b>偏航原理</b>：對角槳同向旋轉，反作用力矩互相抵消；製造轉速差 → 淨力矩 → 機身旋轉（這也是直升機需要尾旋翼的原因）。</li></ul>
+    <p class="q">💭 試試看：繞圈時把週期調短（轉更快），傾角與向心力如何變化？</p>`,
+  params:[
+    {type:'select',id:'wpos',label:'配重位置',value:'nose',options:[
+      {v:'none',label:'不加配重'},{v:'nose',label:'機頭'},{v:'tail',label:'機尾'},
+      {v:'left',label:'左機臂'},{v:'right',label:'右機臂'}]},
+    {id:'wm',label:'配重質量',min:0,max:50,step:1,value:20,unit:' g'},
+    {id:'mdiff',label:'對角馬達轉速差（偏航示範用）',min:0,max:30,step:1,value:12,unit:' %'},
+    {id:'r',label:'繞圈半徑',min:1,max:4,step:0.1,value:2,unit:' m',env:true},
+    {id:'T',label:'繞圈週期（一圈所需時間）',min:2.5,max:12,step:0.5,value:6,unit:' 秒',env:true},
+  ],
+  actions:[
+    {id:'hoverTest',label:'⚖️ 配重懸停測試',on:true},
+    {id:'circle',label:'🔄 繞圈飛行'},
+    {id:'yaw',label:'🧭 偏航示範'}],
+  setup(c){
+    const O=this.O={};
+    O.drone=createDrone();O.drone.rotation.order='YXZ';
+    O.drone.position.set(0,2,0);c.scene.add(O.drone);
+    O.weight=new THREE.Mesh(new THREE.SphereGeometry(0.07,14,10),
+      new THREE.MeshStandardMaterial({color:0xffd54f,roughness:0.4,metalness:0.5}));
+    O.weight.visible=false;O.drone.add(O.weight);
+    O.wLbl=textSprite('配重',{color:'#ffd54f',fs:24});O.wLbl.visible=false;c.scene.add(O.wLbl);
+    const circPts=[];
+    for(let i=0;i<=64;i++){const a=i/64*Math.PI*2;circPts.push(new THREE.Vector3(Math.cos(a),0,Math.sin(a)));}
+    O.ring=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(circPts),
+      new THREE.LineBasicMaterial({color:0xab47bc,transparent:true,opacity:0.6}));
+    O.ring.position.y=2;O.ring.visible=false;c.scene.add(O.ring);
+    O.center=new THREE.Mesh(new THREE.SphereGeometry(0.06,10,8),new THREE.MeshBasicMaterial({color:0xab47bc}));
+    O.center.position.set(0,2,0);O.center.visible=false;c.scene.add(O.center);
+    O.centri=new ForceArrow(c.scene,COLORS.centri,'向心力',{scale:0.2});
+    O.liftA=new ForceArrow(c.scene,COLORS.lift,'升力（傾斜）',{scale:0.12});
+    O.torqueLbl=textSprite('↻ 額外力矩 → 對側馬達加速補償',{color:'#ffee58',fs:24});
+    O.torqueLbl.visible=false;c.scene.add(O.torqueLbl);
+    O.yawLbl=textSprite('轉速差 → 淨反作用力矩 → 機身偏航',{color:'#ffee58',fs:24});
+    O.yawLbl.visible=false;c.scene.add(O.yawLbl);
+    this.S={mode:'hoverTest',ang:0};
+  },
+  action(id){this.S.mode=id;this.S.ang=0;},
+  update(dt,p,c){
+    const S=this.S,O=this.O,d=O.drone;
+    const offMap={nose:[0.32,0.08,0],tail:[-0.32,0.08,0],left:[0,0.08,-0.32],right:[0,0.08,0.32]};
+    const hasW=p.wpos!=='none'&&p.wm>0;
+    O.weight.visible=hasW;
+    if(hasW){
+      const off=offMap[p.wpos];
+      O.weight.position.set(off[0],off[1],off[2]);
+      O.weight.scale.setScalar(0.5+p.wm*0.02);
+    }
+    O.ring.visible=O.center.visible=(S.mode==='circle');
+    O.torqueLbl.visible=false;O.yawLbl.visible=false;O.wLbl.visible=false;
+    O.centri.hide();O.liftA.hide();
+    d.userData.props.forEach(pr=>pr.disc.material.color.setHex(0x80deea));
+    let rows=[];
+    const mTot=0.8+(hasW?p.wm/1000:0);
+    if(S.mode==='hoverTest'){
+      d.position.set(0,2,0);d.rotation.y=0;
+      const tilt=hasW?clamp(p.wm*0.45,0,22)*D2R:0;
+      let rx=0,rz=0;
+      if(p.wpos==='nose')rz=-tilt;
+      else if(p.wpos==='tail')rz=tilt;
+      else if(p.wpos==='left')rx=-tilt;
+      else if(p.wpos==='right')rx=tilt;
+      d.rotation.x+=(rx-d.rotation.x)*Math.min(1,dt*4);
+      d.rotation.z+=(rz-d.rotation.z)*Math.min(1,dt*4);
+      d.userData.spin(dt,0.45);
+      if(hasW){
+        const off=offMap[p.wpos];
+        d.userData.props.forEach(pr=>{
+          if(pr.ax*off[0]+pr.az*off[2]<0){
+            pr.disc.material.opacity=0.55;pr.disc.material.color.setHex(0xfff176);
+          }
+        });
+        O.torqueLbl.visible=true;O.torqueLbl.position.set(0,3.1,0);
+        O.wLbl.visible=true;
+        O.wLbl.position.set(off[0]*1.6,2+0.45,off[2]*1.6);
+        c.warn(p.wm>40?'⚠️ 配重過重：超過飛控補償能力，實機可能側翻！':null);
+      }else c.warn(null);
+      const tq=(hasW?p.wm:0)/1000*9.8*0.32;
+      rows=[
+        ['配重位置',hasW?{nose:'機頭',tail:'機尾',left:'左機臂',right:'右機臂'}[p.wpos]:'無'],
+        ['額外力矩 τ=F×d',fmt(tq,3)+' N·m'],
+        ['機身傾角',fmt(tilt/D2R,1)+'°',tilt>15*D2R?'bad':''],
+        ['平衡條件','合力矩 = 0'],
+      ];
+    }else if(S.mode==='circle'){
+      c.warn(null);
+      const w=2*Math.PI/p.T, a=w*w*p.r, F=mTot*a;
+      const bank=Math.atan2(a,9.8);
+      S.ang+=w*dt;
+      const A=S.ang;
+      O.ring.scale.set(p.r,1,p.r);
+      d.position.set(p.r*Math.cos(A),2,p.r*Math.sin(A));
+      d.rotation.y=-(A+Math.PI/2);
+      d.rotation.x+=( -bank-d.rotation.x)*Math.min(1,dt*5);
+      d.rotation.z=0;
+      d.userData.spin(dt,0.5+a*0.02);
+      const o=d.position.clone();o.y+=0.15;
+      const toC=new THREE.Vector3(-Math.cos(A),0,-Math.sin(A));
+      O.centri.set(o,toC,F);
+      const upL=new THREE.Vector3(0,1,0).applyQuaternion(d.quaternion);
+      O.liftA.set(o,upL,mTot*9.8/Math.cos(bank));
+      rows=[
+        ['週期 T',fmt(p.T,1)+' s'],
+        ['角速度 ω=2π/T',fmt(w,2)+' rad/s'],
+        ['向心加速度 a=ω²r',fmt(a,2)+' m/s²'],
+        ['向心力 F=ma',fmt(F,2)+' N'],
+        ['理論傾角 tanθ=a/g',fmt(bank/D2R,1)+'°'],
+      ];
+    }else{ // yaw
+      c.warn(null);
+      d.position.set(0,2,0);
+      d.rotation.x=0;d.rotation.z=0;
+      const yawRate=p.mdiff*2.2;
+      d.rotation.y+=yawRate*D2R*dt;
+      d.userData.spin(dt,0.45);
+      d.userData.props.forEach((pr,i)=>{
+        const fast=(i%2===0);
+        pr.disc.material.opacity=fast?0.3+p.mdiff*0.012:0.25;
+        pr.disc.material.color.setHex(fast?0xfff176:0x80deea);
+      });
+      O.yawLbl.visible=p.mdiff>0;O.yawLbl.position.set(0,3.1,0);
+      rows=[
+        ['對角轉速差',fmt(p.mdiff,0)+' %'],
+        ['偏航角速度',fmt(yawRate,0)+' °/s'],
+        ['原理','反作用力矩不平衡'],
+        ['對照','直升機的尾旋翼'],
+      ];
+    }
+    return rows;
+  }
+};
+
+/* ============================================================
+   ⑤ 第5堂：能量與能源
+   ============================================================ */
+const sc5={
+  tab:'⑤ 能量與能源',
+  title:'第5堂｜物理／化學：能量與能源（能量轉換與守恆）',
+  legend:['lift','gravity'],
+  camera:{pos:[4,3,6],target:[0,2,0]},
+  knowledge:`<ul>
+    <li><b>能量轉換鏈</b>：電池<b>化學能</b> → 馬達<b>電能</b> → 旋翼<b>動能</b>，部分轉為<b>熱能</b>與<b>聲能</b>（損耗）。</li>
+    <li><b>能量守恆</b>：損耗的能量並沒有消失，只是轉換成其他形式（所以電池會發燙）。</li>
+    <li><b>能量密度</b>：鋰電池約 250 Wh/kg、氫燃料電池可達 800 Wh/kg 以上——但氫能有成本、加氫設施與安全性的限制。</li>
+    <li>低溫會降低鋰電池的有效容量；急速機動比懸停耗電多很多。</li></ul>
+    <p class="q">💭 試試看：同樣電池重量下換成氫燃料電池，續航差多少？把氣溫調到 -10°C 呢？</p>`,
+  params:[
+    {type:'select',id:'mode',label:'飛行模式',value:'hover',options:[
+      {v:'hover',label:'定點懸停'},{v:'cruise',label:'巡航移動'},{v:'sport',label:'急速機動'}]},
+    {type:'select',id:'bat',label:'動力來源（電池種類）',value:'lipo',options:[
+      {v:'lipo',label:'鋰聚合物電池（250 Wh/kg）'},
+      {v:'h2',label:'氫燃料電池（800 Wh/kg）'},
+      {v:'solar',label:'鋰電池＋太陽能輔助'}]},
+    {id:'batW',label:'電池重量',min:100,max:500,step:10,value:250,unit:' g'},
+    {id:'temp',label:'環境氣溫',min:-10,max:40,step:1,value:25,unit:' °C',env:true},
+  ],
+  actions:[{id:'recharge',label:'🔌 重置電量',momentary:true}],
+  setup(c){
+    const O=this.O={};
+    O.drone=createDrone();O.drone.position.set(0,2,0);c.scene.add(O.drone);
+    O.heatN=40;
+    O.heatPos=new Float32Array(O.heatN*3);
+    O.heatP=[];
+    for(let i=0;i<O.heatN;i++)O.heatP.push({x:(Math.random()-0.5)*0.8,y:Math.random()*1.2,z:(Math.random()-0.5)*0.8});
+    O.heatGeo=new THREE.BufferGeometry();
+    O.heatGeo.setAttribute('position',new THREE.BufferAttribute(O.heatPos,3));
+    O.heat=new THREE.Points(O.heatGeo,new THREE.PointsMaterial({color:0xff7043,size:0.05,transparent:true,opacity:0.5}));
+    O.heat.frustumCulled=false;c.scene.add(O.heat);
+    O.heatLbl=textSprite('熱能（能量損耗）↑',{color:'#ff8a65',fs:22});
+    O.heatLbl.position.set(0,3.6,0);c.scene.add(O.heatLbl);
+    O.sun=null;
+    this.S={E:-1,flyT:0,batT:25,landed:false,ang:0};
+  },
+  action(id){
+    if(id==='recharge'){this.S.E=-1;this.S.flyT=0;this.S.landed=false;this.S.batT=25;}
+  },
+  update(dt,p,c){
+    const S=this.S,O=this.O;
+    const dens={lipo:250,h2:800,solar:250}[p.bat];
+    const derate=p.bat==='h2'?1:clamp(1-Math.max(0,20-p.temp)*0.012,0.5,1);
+    const cap=dens*(p.batW/1000)*derate;   // Wh
+    if(S.E<0||S.E>cap)S.E=cap;
+    const m=0.75+p.batW/1000;
+    const modeK={hover:1,cruise:1.28,sport:1.8}[p.mode];
+    let Pw=110*Math.pow(m,1.5)*modeK;
+    const solar=p.bat==='solar'?25:0;
+    const Pnet=Math.max(5,Pw-solar);
+    if(!S.landed){
+      S.E-=Pnet*dt*90/3600;   // 加速 90 倍模擬
+      S.flyT+=dt*90/60;
+      if(S.E<=0){S.E=0;S.landed=true;}
+    }
+    const pct=S.E/cap*100;
+    const endur=S.E/Pnet*60;
+    const heatFrac=p.mode==='sport'?0.32:0.26;
+    S.batT+=((p.temp+Pw*heatFrac*0.18)-S.batT)*Math.min(1,dt*0.25);
+    // 動畫
+    S.ang+=dt;
+    const bob=Math.sin(S.ang*1.8)*0.06;
+    let targetY=S.landed?GROUND_Y:2+bob;
+    O.drone.position.y+=(targetY-O.drone.position.y)*Math.min(1,dt*(S.landed?0.8:3));
+    O.drone.position.x=p.mode==='hover'?0:Math.sin(S.ang*(p.mode==='sport'?1.6:0.7))*(p.mode==='sport'?2.2:1.4);
+    O.drone.rotation.z=p.mode==='hover'?0:-Math.cos(S.ang*(p.mode==='sport'?1.6:0.7))*(p.mode==='sport'?0.3:0.12);
+    O.drone.userData.spin(dt,S.landed?0:0.3*modeK+0.15);
+    const hk=clamp(Pw*heatFrac/60,0.1,1);
+    for(let i=0;i<O.heatN;i++){
+      const hp=O.heatP[i];
+      hp.y+=dt*(0.4+hk*0.8);
+      if(hp.y>1.4)hp.y=0;
+      O.heatPos[i*3]=O.drone.position.x+hp.x;
+      O.heatPos[i*3+1]=O.drone.position.y+0.2+hp.y;
+      O.heatPos[i*3+2]=hp.z;
+    }
+    O.heatGeo.attributes.position.needsUpdate=true;
+    O.heat.material.opacity=S.landed?0:0.2+hk*0.4;
+    O.heatLbl.visible=!S.landed;
+    O.heatLbl.position.x=O.drone.position.x;
+    const kin=100-heatFrac*100-5;
+    c.setBars([
+      {label:'🔋 電量（化學能存量）',text:fmt(pct,0)+' %',frac:pct/100,color:pct>20?'#66bb6a':'#ef5350'},
+      {label:'🌀 → 動能（旋翼轉動）',text:fmt(kin,0)+' %',frac:kin/100,color:'#42a5f5'},
+      {label:'🔥 → 熱能（損耗）',text:fmt(heatFrac*100,0)+' %',frac:heatFrac,color:'#ff7043'},
+      {label:'🔊 → 聲能（損耗）',text:'5 %',frac:0.05,color:'#ce93d8'},
+    ]);
+    if(S.landed)c.warn('🪫 電量耗盡，已自動降落！按「重置電量」重新開始');
+    else if(pct<20)c.warn('⚠️ 低電量警告（<20%）：建議立即返航！');
+    else if(S.batT>55)c.warn('🔥 電池溫度過高，實機應立即降落停用！');
+    else c.warn(null);
+    return [
+      ['總重量',fmt(m,2)+' kg'],
+      ['輸入功率',fmt(Pw,0)+' W'+(solar?`（太陽能 -${solar}W）`:'')],
+      ['有效容量',fmt(cap,1)+' Wh'+(derate<1?'（低溫衰減）':'')],
+      ['電量',fmt(pct,0)+' %',pct<20?'bad':'good'],
+      ['預估剩餘續航',fmt(endur,1)+' 分鐘'],
+      ['模擬飛行時間',fmt(S.flyT,1)+' 分鐘'],
+      ['電池溫度',fmt(S.batT,0)+' °C',S.batT>55?'bad':''],
+    ];
+  }
+};
+
+/* ============================================================
+   ⑥ 第6堂：大氣壓力與空氣密度（密度高度）
+   ============================================================ */
+const sc6={
+  tab:'⑥ 大氣壓力',
+  title:'第6堂｜地球科學：大氣壓力與空氣密度（密度高度）',
+  legend:['lift','gravity'],
+  sceneOpt:{groundColor:0x2d3a2f},
+  camera:{pos:[5,3.5,7],target:[0,1.5,0]},
+  knowledge:`<ul>
+    <li><b>大氣壓力</b>來自空氣的重量，隨高度增加而降低（標準海平面 1013.2 hPa＝29.92 吋汞柱）。</li>
+    <li><b>空氣密度</b>受高度、溫度、濕度影響：<b>高海拔、高溫、高濕 → 密度都變低</b>。</li>
+    <li><b>密度高度</b>：把當下空氣密度換算成標準大氣中的等效高度。密度越低 → 槳葉能推的空氣越少 → 升力越小 → 需要更大油門（飛機則需更長跑道）。</li>
+    <li>這就是無人機在玉山山頂比較難起飛、民航機座艙要增壓的原因。</li></ul>
+    <p class="q">💭 試試看：模擬玉山（海拔約3952m）：把海拔調到3950、油門維持在平地剛好起飛的值，還飛得起來嗎？</p>`,
+  params:[
+    {id:'thr',label:'油門',min:0,max:100,step:1,value:55,unit:' %'},
+    {id:'h',label:'海拔高度（玉山≈3952m）',min:0,max:4000,step:50,value:0,unit:' m',env:true},
+    {id:'T0',label:'現場氣溫',min:-10,max:40,step:1,value:25,unit:' °C',env:true},
+    {id:'RH',label:'相對濕度',min:0,max:100,step:1,value:60,unit:' %',env:true},
+  ],
+  actions:[{id:'test',label:'🛫 測試起飛'},{id:'land',label:'🛬 降落重置',momentary:true}],
+  setup(c){
+    const O=this.O={};
+    O.drone=createDrone();O.drone.position.y=GROUND_Y;c.scene.add(O.drone);
+    // 遠景山脈
+    for(let i=0;i<5;i++){
+      const mt=new THREE.Mesh(new THREE.ConeGeometry(8+Math.random()*6,10+Math.random()*8,7),
+        new THREE.MeshStandardMaterial({color:0x24303d,roughness:1,flatShading:true}));
+      mt.position.set(-30+i*15,3,-38-Math.random()*10);
+      c.scene.add(mt);
+    }
+    // 空氣分子點
+    O.molN=500;
+    O.molPos=new Float32Array(O.molN*3);
+    for(let i=0;i<O.molN;i++){
+      O.molPos[i*3]=(Math.random()-0.5)*24;
+      O.molPos[i*3+1]=Math.random()*9;
+      O.molPos[i*3+2]=(Math.random()-0.5)*24;
+    }
+    O.molGeo=new THREE.BufferGeometry();
+    O.molGeo.setAttribute('position',new THREE.BufferAttribute(O.molPos,3));
+    O.mol=new THREE.Points(O.molGeo,new THREE.PointsMaterial({color:0x90caf9,size:0.05,transparent:true,opacity:0.5}));
+    O.mol.frustumCulled=false;c.scene.add(O.mol);
+    O.molLbl=textSprite('· 空氣分子（密度示意）',{color:'#90caf9',fs:22});
+    O.molLbl.position.set(-4,6,0);c.scene.add(O.molLbl);
+    O.liftA=new ForceArrow(c.scene,COLORS.lift,'升力',{scale:0.14});
+    O.gravA=new ForceArrow(c.scene,COLORS.gravity,'重力 mg',{scale:0.14});
+    this.S={mode:'idle',y:GROUND_Y,vy:0,shake:0};
+  },
+  action(id){
+    const S=this.S;
+    if(id==='test')S.mode='test';
+    else{S.mode='idle';S.y=GROUND_Y;S.vy=0;}
+  },
+  update(dt,p,c){
+    const S=this.S,O=this.O;
+    const Th=p.T0;                       // 現場氣溫（使用者直接設定）
+    const pres=isaPressure(p.h);
+    const rho=airDensity(pres,Th,p.RH);
+    const rr=rho/1.225;
+    const DA=44330*(1-Math.pow(rr,0.235));
+    const W=1.0*9.8;
+    const maxT=21*rr;                    // 全油門推力
+    const T=maxT*(p.thr/100);
+    const minThr=W/maxT*100;
+    if(S.mode==='test'){
+      const a=(T-W)/1.0;
+      if(T>W*1.01){
+        S.vy=clamp(S.vy+a*dt,-2,1.5);
+        S.y=clamp(S.y+S.vy*dt,GROUND_Y,3.2);
+        if(S.y>=3.2){S.y=3.2;S.vy=0;}
+        S.shake=0;
+        c.warn(null);
+      }else if(S.y<=GROUND_Y+0.01){
+        S.y=GROUND_Y;S.vy=0;S.shake=1;
+        c.warn(`⚠️ 升力不足，無法離地！此密度下最少需油門 ${fmt(minThr,0)}%`);
+      }else{
+        S.vy=clamp(S.vy+a*dt,-2,1.5);
+        S.y=Math.max(GROUND_Y,S.y+S.vy*dt);
+        c.warn('⚠️ 升力＜重力，正在下沉！');
+      }
+    }else{S.y=GROUND_Y;S.vy=0;S.shake=0;c.warn(null);}
+    const jitter=S.shake?Math.sin(performance.now()*0.05)*0.02:0;
+    O.drone.position.set(jitter,S.y,jitter*0.7);
+    O.drone.userData.spin(dt,S.mode==='test'?clamp(p.thr/100,0.1,1):0.06);
+    // 空氣密度視覺
+    O.mol.material.opacity=clamp(rr,0.12,1)*0.55;
+    O.mol.material.size=0.03+rr*0.03;
+    c.scene.background.setHSL(0.62,0.45,clamp(0.16*rr+0.02,0.03,0.2));
+    if(c.scene.fog)c.scene.fog.color.copy(c.scene.background);
+    const o=new THREE.Vector3(O.drone.position.x,S.y+0.15,O.drone.position.z);
+    if(S.mode==='test'){O.liftA.set(o,UP,T);O.gravA.set(o,DOWN,W);}
+    else{O.liftA.hide();O.gravA.hide();}
+    return [
+      ['該高度氣壓',fmt(pres,1)+' hPa'],
+      ['空氣密度',fmt(rho,3)+' kg/m³'],
+      ['密度高度',fmt(DA,0)+' m'],
+      ['目前升力',fmt(T,1)+' N（重力 '+fmt(W,1)+' N）',T>W?'good':'bad'],
+      ['最小起飛油門',fmt(minThr,0)+' %',minThr>100?'bad':''],
+      ['飛行高度',fmt(S.y-GROUND_Y,1)+' m（相對）'],
+    ];
+  }
+};
+
+/* ============================================================
+   ⑦ 第7堂：風與亂流
+   ============================================================ */
+const sc7={
+  tab:'⑦ 風與亂流',
+  title:'第7堂｜地球科學：風與亂流（風向、風切與背風亂流）',
+  legend:['wind','rel','thrust'],
+  camera:{pos:[7,5,9],target:[0,1.5,0]},
+  knowledge:`<ul>
+    <li><b>風</b>是空氣的水平運動，由「氣壓差」造成（高壓流向低壓）。風向指「風的來向」。</li>
+    <li><b>逆風起飛</b>可增加相對氣流速度 → 升力較大、更快脫離地面；<b>側風</b>會使機身偏移，須不斷修正航向。</li>
+    <li><b>亂流</b>：建築物、山谷的<b>背風面</b>氣流分離，產生不規則的渦流 → 機身劇烈晃動。</li>
+    <li>風速超過無人機的<b>抗風等級</b>上限時應取消飛行——模擬中可以體驗「失控漂移」！</li></ul>
+    <p class="q">💭 試試看：切到「城市建築」地形，把風向對準建築物，觀察紅色亂流區的位置怎麼跟著風向移動？</p>`,
+  params:[
+    {type:'select',id:'cap',label:'無人機抗風等級',value:'10',options:[
+      {v:'7',label:'4級風上限（約7 m/s，一般消費機）'},
+      {v:'10',label:'5級風上限（約10 m/s，進階空拍機）'},
+      {v:'13',label:'6級風上限（約13 m/s，專業機）'}]},
+    {id:'wind',label:'平均風速',min:0,max:16,step:0.5,value:4,unit:' m/s',env:true},
+    {id:'wdir',label:'風向（風的來向，0°=北）',min:0,max:360,step:5,value:0,unit:'°',env:true},
+    {id:'gustA',label:'陣風強度（額外增減）',min:0,max:8,step:0.5,value:1.5,unit:' m/s',env:true},
+    {id:'gustF',label:'陣風頻率',min:0.05,max:1,step:0.05,value:0.25,unit:' Hz',env:true},
+    {type:'select',id:'terrain',label:'地形',value:'flat',options:[
+      {v:'flat',label:'開闊平地'},{v:'city',label:'城市建築'},{v:'valley',label:'山谷'}],env:true},
+  ],
+  actions:[
+    {id:'hover',label:'🎯 懸停',on:true},
+    {id:'up',label:'🛫 起飛爬升'},
+    {id:'reset',label:'🔄 回到起飛點',momentary:true}],
+  setup(c){
+    const O=this.O={};
+    O.drone=createDrone();O.drone.position.set(0,GROUND_Y,0);c.scene.add(O.drone);
+    const pad=new THREE.Mesh(new THREE.RingGeometry(0.5,0.7,32),
+      new THREE.MeshBasicMaterial({color:0x22d3ee,side:THREE.DoubleSide,transparent:true,opacity:0.5}));
+    pad.rotation.x=-Math.PI/2;pad.position.y=0.001;c.scene.add(pad);
+    // 方位標示
+    const compass=[['北 N',0,-14],['東 E',14,0],['南 S',0,14],['西 W',-14,0]];
+    compass.forEach(cc=>{
+      const sp=textSprite(cc[0],{color:'#8fa6bd',fs:26});
+      sp.position.set(cc[1],0.6,cc[2]);c.scene.add(sp);
+    });
+    O.terrGroup=new THREE.Group();c.scene.add(O.terrGroup);
+    O.zoneGroup=new THREE.Group();c.scene.add(O.zoneGroup);
+    O.lastTerr='';
+    O.obstacles=[];
+    O.streaks=new WindStreaks(c.scene,240,
+      new THREE.Box3(new THREE.Vector3(-14,0.2,-14),new THREE.Vector3(14,7,14)));
+    O.windA=new ForceArrow(c.scene,COLORS.wind,'風',{scale:0.3,max:4});
+    O.relA=new ForceArrow(c.scene,COLORS.rel,'相對氣流',{scale:0.3,max:4});
+    this.S={mode:'hover',pos:new THREE.Vector3(0,GROUND_Y,0),t:0,turb:0,lost:false};
+    this._w=new THREE.Vector3();this._tmp=new THREE.Vector3();
+  },
+  buildTerrain(c,terr){
+    const O=this.O;
+    while(O.terrGroup.children.length){
+      const ch=O.terrGroup.children.pop();
+      if(ch.geometry)ch.geometry.dispose();if(ch.material)ch.material.dispose();
+    }
+    while(O.zoneGroup.children.length){
+      const ch=O.zoneGroup.children.pop();
+      if(ch.geometry)ch.geometry.dispose();
+      if(ch.material&&ch.material.dispose)ch.material.dispose();
+      if(ch.material&&ch.material.map)ch.material.map.dispose();
+    }
+    O.obstacles=[];O.zones=[];
+    const M=(cl)=>new THREE.MeshStandardMaterial({color:cl,roughness:0.95});
+    if(terr==='city'){
+      const defs=[[-4,-4,1.6,3.5],[3,-5,2,4.5],[5,3,1.6,2.8]];
+      defs.forEach(dd=>{
+        const b=new THREE.Mesh(new THREE.BoxGeometry(dd[2]*2,dd[3],dd[2]*2),M(0x3a4a5c));
+        b.position.set(dd[0],dd[3]/2,dd[1]);O.terrGroup.add(b);
+        O.obstacles.push({x:dd[0],z:dd[1],r:dd[2]*1.3,h:dd[3]});
+      });
+    }else if(terr==='valley'){
+      for(const sd of[-1,1]){
+        const ridge=new THREE.Mesh(new THREE.BoxGeometry(22,3.6,3),M(0x4a4336));
+        ridge.position.set(0,1.8,sd*6.5);ridge.rotation.z=0;O.terrGroup.add(ridge);
+        for(const rx of[-6,0,6])O.obstacles.push({x:rx,z:sd*6.5,r:2.4,h:3.6});
+      }
+    }
+    // 亂流區示意方塊（隨風向擺放）
+    O.obstacles.forEach(ob=>{
+      const zone=new THREE.Mesh(new THREE.BoxGeometry(ob.r*2.1,ob.h*1.15,5.5),
+        new THREE.MeshBasicMaterial({color:0xef5350,transparent:true,opacity:0.1,depthWrite:false}));
+      const lbl=textSprite('亂流區（背風面）',{color:'#ef9a9a',fs:24});
+      lbl.position.y=ob.h*0.75+0.6;
+      zone.add(lbl);
+      O.zoneGroup.add(zone);
+      O.zones.push({zone,ob});
+    });
+    O.lastTerr=terr;
+  },
+  windVec(p,t,out){
+    const th=p.wdir*D2R;
+    const gust=p.gustA*(0.6*Math.sin(2*Math.PI*p.gustF*t)+0.4*Math.sin(2*Math.PI*p.gustF*2.7*t+1.3));
+    const W=Math.max(0,p.wind+gust);
+    out.set(-Math.sin(th)*W,0,Math.cos(th)*W);
+    return W;
+  },
+  turbAt(pos,windUnit){
+    const O=this.O;let inten=0;
+    for(const ob of O.obstacles){
+      const dx=pos.x-ob.x,dz=pos.z-ob.z;
+      const proj=dx*windUnit.x+dz*windUnit.z;
+      const px=dx-proj*windUnit.x,pz=dz-proj*windUnit.z;
+      const perp=Math.hypot(px,pz);
+      if(proj>0&&proj<5.5+ob.r&&perp<ob.r*1.15&&pos.y<ob.h*1.25)
+        inten=Math.max(inten,1-proj/(5.5+ob.r));
+    }
+    return inten;
+  },
+  update(dt,p,c){
+    const S=this.S,O=this.O;
+    if(O.lastTerr!==p.terrain)this.buildTerrain(c,p.terrain);
+    S.t+=dt;
+    const w=this._w;
+    const Wnow=this.windVec(p,S.t,w);
+    const wu=this._tmp.copy(w);
+    if(Wnow>0.01)wu.normalize();else wu.set(0,0,1);
+    // 亂流區方塊跟著風向
+    const yaw=Math.atan2(wu.x,wu.z);
+    for(const zz of(O.zones||[])){
+      zz.zone.position.set(zz.ob.x+wu.x*(2.75+zz.ob.r),zz.ob.h*0.55,zz.ob.z+wu.z*(2.75+zz.ob.r));
+      zz.zone.rotation.y=yaw;
+      zz.zone.visible=p.wind>0.5;
+    }
+    // 粒子
+    const self=this;
+    O.streaks.update(dt,pt=>{
+      self.windVec(p,S.t,self._v||(self._v=new THREE.Vector3()));
+      const v=self._v;
+      const ti=self.turbAt(pt,wu);
+      if(ti>0){
+        const n=performance.now()*0.003;
+        v.x+=Math.sin(pt.y*3.1+n*4)*Wnow*0.8*ti;
+        v.y+=Math.cos(pt.x*2.3+n*5)*Wnow*0.7*ti;
+        v.z+=Math.sin(pt.z*2.7+n*3.4)*Wnow*0.8*ti;
+        v.multiplyScalar(0.6);
+      }
+      for(const ob of O.obstacles){
+        if(Math.hypot(pt.x-ob.x,pt.z-ob.z)<ob.r&&pt.y<ob.h){v.y+=Wnow*0.8;}
+      }
+      return v;
+    });
+    // 無人機行為
+    const capV=parseFloat(p.cap);
+    const targetY=S.mode==='up'?clamp(S.pos.y+dt*1.2,GROUND_Y,4.5):(S.mode==='hover'?2:GROUND_Y);
+    if(S.mode==='up'&&S.pos.y>=4.4)S.mode='hover';
+    S.pos.y+=(Math.min(targetY,S.mode==='hover'?2:targetY)-S.pos.y)*Math.min(1,dt*2);
+    if(S.mode==='up')S.pos.y=targetY;
+    const flying=S.pos.y>GROUND_Y+0.15;
+    const over=Wnow>capV;
+    if(flying){
+      if(over){
+        S.lost=true;
+        S.pos.addScaledVector(wu,(Wnow-capV)*dt);
+      }else{
+        S.lost=false;
+        const k=clamp(1-Wnow/capV,0.15,1);
+        S.pos.x+=(0-S.pos.x)*Math.min(1,dt*1.4*k);
+        S.pos.z+=(0-S.pos.z)*Math.min(1,dt*1.4*k);
+        S.pos.x+=wu.x*Wnow*dt*0.06;
+        S.pos.z+=wu.z*Wnow*dt*0.06;
+      }
+    }
+    S.pos.x=clamp(S.pos.x,-13,13);S.pos.z=clamp(S.pos.z,-13,13);
+    const ti=flying?this.turbAt(S.pos,wu):0;
+    S.turb+=(ti-S.turb)*Math.min(1,dt*3);
+    const n=performance.now()*0.02;
+    O.drone.position.copy(S.pos);
+    if(flying){
+      O.drone.position.x+=Math.sin(n*1.3)*0.05*S.turb*3;
+      O.drone.position.y+=Math.sin(n*1.7)*0.08*S.turb*3;
+      O.drone.rotation.x=Math.sin(n*1.1)*0.25*S.turb+(-wu.z*clamp(Wnow/capV,0,0.5)*0.5);
+      O.drone.rotation.z=Math.sin(n*0.9)*0.25*S.turb+(wu.x*clamp(Wnow/capV,0,0.5)*0.5);
+    }else{O.drone.rotation.x=0;O.drone.rotation.z=0;}
+    O.drone.userData.spin(dt,flying?0.5:0.06);
+    const o=S.pos.clone();o.y+=0.3;
+    if(Wnow>0.3){O.windA.set(o,wu,Wnow*0.6);}else O.windA.hide();
+    if(flying&&Wnow>0.3){
+      const rel=wu.clone().multiplyScalar(-1);
+      O.relA.set(o,rel,Wnow*0.6);
+    }else O.relA.hide();
+    const drift=Math.hypot(S.pos.x,S.pos.z);
+    if(S.lost&&flying)c.warn('🚨 風速超過抗風等級上限，無人機失控漂移！（實際應立即取消飛行）');
+    else if(S.turb>0.25&&flying)c.warn('⚠️ 進入建築物／地形背風面亂流區，機身劇烈晃動！');
+    else c.warn(null);
+    let status='平穩';
+    if(S.lost&&flying)status='失控漂移';
+    else if(S.turb>0.25&&flying)status='亂流晃動';
+    else if(Wnow>capV*0.7)status='接近抗風上限';
+    return [
+      ['即時風速（含陣風）',fmt(Wnow,1)+' m/s',over?'bad':''],
+      ['風向',fmt(p.wdir,0)+'°（'+['北','東北','東','東南','南','西南','西','西北'][Math.round(p.wdir/45)%8]+'風）'],
+      ['抗風等級上限',capV+' m/s'],
+      ['相對氣流',flying?fmt(Wnow,1)+' m/s':'—'],
+      ['偏移距離',fmt(drift,1)+' m',drift>3?'bad':''],
+      ['飛行狀態',status,S.lost||S.turb>0.25?'bad':'good'],
+    ];
+  },
+  action(id){
+    const S=this.S;
+    if(id==='reset'){S.pos.set(0,GROUND_Y,0);S.mode='ground';S.lost=false;}
+    else S.mode=id;
+  }
+};
+
+/* ============================================================
+   ⑧ 第9＋12堂：濕度、露點、雲霧與積冰雷雨
+   ============================================================ */
+const sc8={
+  tab:'⑧ 濕度與積冰',
+  title:'第9＋12堂｜地球科學：濕度露點、雲霧形成與積冰雷雨',
+  legend:['lift','gravity'],
+  sceneOpt:{bg:0x101d30},
+  camera:{pos:[7,5,11],target:[0,3,0]},
+  knowledge:`<ul>
+    <li><b>相對濕度</b>＝實際水氣量÷同溫度最大可容納水氣量。氣溫降到<b>露點</b>時水氣飽和 → 凝結成雲、霧、露。</li>
+    <li><b>雲底高度</b>估算：每上升100m氣溫約降0.65°C，雲底 ≈ 125 ×（氣溫－露點）公尺。</li>
+    <li><b>積冰條件</b>：機體周遭氣溫<b> 0°C 以下</b>＋<b>有可見水氣</b>（雲、雨）→ 槳葉結冰 → 擾動氣流、<b>升力下降、重量增加</b>。</li>
+    <li><b>雷雨三階段</b>：發展期（強上升氣流、雲塔增高）→ 成熟期（開始降水打雷、上下氣流並存）→ 消散期（下沉氣流為主）。<b>雷雨天嚴禁飛行！</b></li></ul>
+    <p class="q">💭 試試看：把氣溫調低、濕度調高，雲底是不是變低了？讓無人機飛進雲裡且氣溫低於0°C，觀察積冰發生！</p>`,
+  params:[
+    {id:'h',label:'無人機飛行高度',min:0,max:3000,step:25,value:300,unit:' m'},
+    {type:'toggle',id:'ice',label:'啟用積冰模擬',value:true},
+    {id:'T0',label:'地面氣溫',min:-5,max:38,step:0.5,value:12,unit:' °C',env:true},
+    {id:'RH',label:'地面相對濕度',min:20,max:100,step:1,value:75,unit:' %',env:true},
+    {type:'toggle',id:'rain',label:'降雨',value:false,env:true},
+    {type:'select',id:'storm',label:'雷雨階段（遠方積雨雲）',value:'none',options:[
+      {v:'none',label:'無雷雨'},{v:'dev',label:'發展期（上升氣流）'},
+      {v:'mat',label:'成熟期（降水＋打雷）'},{v:'dis',label:'消散期（下沉氣流）'}],env:true},
+  ],
+  actions:[],
+  action(){},
+  setup(c){
+    const O=this.O={};
+    O.drone=createDrone();c.scene.add(O.drone);
+    // 雲層（一排扁平球）
+    O.cloud=new THREE.Group();
+    const cm=new THREE.MeshStandardMaterial({color:0xb0bec5,roughness:1,transparent:true,opacity:0.75});
+    for(let i=0;i<10;i++){
+      const puff=new THREE.Mesh(new THREE.SphereGeometry(1.2+Math.random()*0.9,10,8),cm);
+      puff.position.set(-8+i*1.8+Math.random(),Math.random()*0.4,(Math.random()-0.5)*4);
+      puff.scale.y=0.45;
+      O.cloud.add(puff);
+    }
+    c.scene.add(O.cloud);
+    O.cloudLbl=textSprite('雲底（水氣達飽和開始凝結）',{color:'#cfd8dc',fs:24});
+    c.scene.add(O.cloudLbl);
+    // 雨
+    O.rainN=180;
+    O.rainPos=new Float32Array(O.rainN*6);
+    O.rainP=[];
+    for(let i=0;i<O.rainN;i++)O.rainP.push({x:(Math.random()-0.5)*22,y:Math.random()*9,z:(Math.random()-0.5)*22});
+    O.rainGeo=new THREE.BufferGeometry();
+    O.rainGeo.setAttribute('position',new THREE.BufferAttribute(O.rainPos,3));
+    O.rain=new THREE.LineSegments(O.rainGeo,new THREE.LineBasicMaterial({color:0x81d4fa,transparent:true,opacity:0.4}));
+    O.rain.frustumCulled=false;O.rain.visible=false;c.scene.add(O.rain);
+    // 遠方積雨雲
+    O.storm=new THREE.Group();O.storm.position.set(-13,0,-9);c.scene.add(O.storm);
+    O.stormMat=new THREE.MeshStandardMaterial({color:0x78909c,roughness:1,transparent:true,opacity:0.85});
+    O.anvil=null;O.lastStorm='';
+    O.stormArrows=[];
+    O.flash=new THREE.PointLight(0xbfdcff,0,60);O.flash.position.set(-13,6,-9);c.scene.add(O.flash);
+    O.stormLbl=textSprite('',{color:'#ffcc80',fs:26});O.stormLbl.position.set(-13,11,-9);O.stormLbl.visible=false;c.scene.add(O.stormLbl);
+    O.iceLbl=textSprite('🧊 槳葉積冰！',{color:'#e1f5fe',fs:26});O.iceLbl.visible=false;c.scene.add(O.iceLbl);
+    this.S={iceLv:0,sink:0,flashT:0};
+  },
+  buildStorm(stage){
+    const O=this.O;
+    while(O.storm.children.length){
+      const ch=O.storm.children.pop();
+      if(ch.geometry)ch.geometry.dispose();
+      if(ch.material&&ch.material.map)ch.material.map.dispose();
+    }
+    O.stormArrows=[];
+    if(stage==='none'){O.lastStorm=stage;O.stormLbl.visible=false;return;}
+    const hMax={dev:7,mat:10,dis:8}[stage];
+    for(let y=1;y<hMax;y+=1.4){
+      const r=stage==='dis'&&y>hMax-3?2.8:1.4+Math.random()*0.8+(y/hMax)*1.2;
+      const puff=new THREE.Mesh(new THREE.SphereGeometry(r,10,8),O.stormMat);
+      puff.position.set((Math.random()-0.5)*1.5,y,(Math.random()-0.5)*1.5);
+      puff.scale.y=0.6;
+      O.storm.add(puff);
+    }
+    if(stage==='mat'||stage==='dis'){
+      const anvil=new THREE.Mesh(new THREE.CylinderGeometry(4.5,2.2,1,12),O.stormMat);
+      anvil.position.y=hMax;O.storm.add(anvil);
+    }
+    // 氣流箭頭
+    const mkArrow=(up,x)=>{
+      const a=new THREE.ArrowHelper(new THREE.Vector3(0,up?1:-1,0),
+        new THREE.Vector3(x,up?1:hMax-1,0),hMax-2,up?0x4dd0e1:0x7986cb,0.8,0.5);
+      O.storm.add(a);O.stormArrows.push({a,up});
+    };
+    if(stage==='dev'){mkArrow(true,-0.8);mkArrow(true,0.8);}
+    else if(stage==='mat'){mkArrow(true,-1.2);mkArrow(false,1.2);}
+    else{mkArrow(false,-0.8);mkArrow(false,0.8);}
+    O.stormLbl.material.map.dispose();
+    const txt={dev:'發展期：強烈上升氣流、雲塔增高',mat:'成熟期：降水＋打雷、上下氣流並存',dis:'消散期：下沉氣流、逐漸減弱'}[stage];
+    const ns=textSprite(txt,{color:'#ffcc80',fs:26});
+    O.stormLbl.material=ns.material;O.stormLbl.scale.copy(ns.scale);
+    O.stormLbl.visible=true;
+    O.stormLbl.position.set(-13,hMax+2,-9);
+    O.lastStorm=stage;
+  },
+  update(dt,p,c){
+    const S=this.S,O=this.O;
+    if(O.lastStorm!==p.storm)this.buildStorm(p.storm);
+    const Td=dewPoint(p.T0,p.RH);
+    const cloudBase=Math.max(0,125*(p.T0-Td));
+    const Th=p.T0-6.5*p.h/1000;
+    const RHh=clamp(p.RH+ (p.h/Math.max(cloudBase,1))*(100-p.RH),p.RH,100);
+    const inCloud=p.h>=cloudBase&&p.h<=cloudBase+900&&cloudBase<3000;
+    const visMoist=inCloud||p.rain;
+    const icing=p.ice&&Th<=0&&visMoist;
+    if(icing)S.iceLv=clamp(S.iceLv+dt*9,0,100);
+    else if(Th>2)S.iceLv=clamp(S.iceLv-dt*14,0,100);
+    const liftLoss=S.iceLv*0.35;
+    // 視覺比例：300m = 1單位
+    const K=1/300;
+    const droneY=GROUND_Y+p.h*K;
+    S.sink=liftLoss>25?S.sink+dt*0.4:Math.max(0,S.sink-dt*0.5);
+    O.drone.position.set(0,Math.max(GROUND_Y,droneY-S.sink),0);
+    O.drone.userData.spin(dt,0.45);
+    const iceC=new THREE.Color(0xb0bec5).lerp(new THREE.Color(0xffffff),S.iceLv/100);
+    O.drone.userData.bladeMats.forEach(m=>m.color.copy(iceC));
+    O.iceLbl.visible=S.iceLv>5;
+    O.iceLbl.position.set(0,O.drone.position.y+0.8,0);
+    // 雲層
+    const cb=cloudBase*K;
+    O.cloud.visible=cloudBase<3000&&p.RH>25;
+    O.cloud.position.y=cb+0.5;
+    O.cloudLbl.visible=O.cloud.visible;
+    O.cloudLbl.position.set(0,cb+1.8,2.5);
+    // 霧（在雲中）
+    if(inCloud){
+      if(!c.scene.fog||!(c.scene.fog instanceof THREE.FogExp2))c.scene.fog=new THREE.FogExp2(0x9eb3c4,0.001);
+      c.scene.fog.density+=(0.11-c.scene.fog.density)*Math.min(1,dt*2);
+      c.scene.background.lerp(new THREE.Color(0x8fa4b5),Math.min(1,dt*2));
+    }else{
+      if(c.scene.fog instanceof THREE.FogExp2)
+        c.scene.fog.density+=(0.004-c.scene.fog.density)*Math.min(1,dt*2);
+      c.scene.background.lerp(new THREE.Color(0x101d30),Math.min(1,dt*2));
+    }
+    // 雨
+    O.rain.visible=p.rain;
+    if(p.rain){
+      for(let i=0;i<O.rainN;i++){
+        const rp=O.rainP[i];
+        rp.y-=dt*7;
+        if(rp.y<0)rp.y=Math.max(cb+0.5,4)+Math.random()*2;
+        O.rainPos[i*6]=rp.x;O.rainPos[i*6+1]=rp.y;O.rainPos[i*6+2]=rp.z;
+        O.rainPos[i*6+3]=rp.x;O.rainPos[i*6+4]=rp.y-0.28;O.rainPos[i*6+5]=rp.z;
+      }
+      O.rainGeo.attributes.position.needsUpdate=true;
+    }
+    // 雷雨動畫
+    if(p.storm==='mat'){
+      S.flashT-=dt;
+      if(S.flashT<=0&&Math.random()<dt*0.7){O.flash.intensity=8;S.flashT=0.12;}
+      if(S.flashT<=0)O.flash.intensity=Math.max(0,O.flash.intensity-dt*40);
+    }else O.flash.intensity=0;
+    for(const sa of O.stormArrows){
+      // 呼吸動畫
+      const s=1+Math.sin(performance.now()*0.002)*0.12;
+      sa.a.setLength((({dev:5,mat:8,dis:6})[p.storm]||5)*s*0.8,0.8,0.5);
+    }
+    // 警告
+    if(p.storm!=='none')c.warn('⛈️ 雷雨天氣嚴禁操作無人機！（民航局規定）此時僅能進行地面觀察');
+    else if(liftLoss>25)c.warn('🧊 積冰嚴重：升力下降 '+fmt(liftLoss,0)+'%、重量增加 → 高度無法維持，正在下沉！');
+    else if(icing)c.warn('🧊 積冰形成中！氣溫 0°C 以下＋可見水氣（雲／雨）');
+    else if(inCloud)c.warn('🌫️ 已進入雲中：能見度極低（實機禁止超出視距飛行）');
+    else c.warn(null);
+    return [
+      ['露點溫度 Td',fmt(Td,1)+' °C'],
+      ['理論雲底高度',cloudBase<3000?fmt(cloudBase,0)+' m':'—（太乾不成雲）'],
+      ['飛行高度氣溫',fmt(Th,1)+' °C',Th<=0?'bad':''],
+      ['該高度相對濕度',fmt(RHh,0)+' %'],
+      ['能見度',inCloud?'雲中，極差':'良好',inCloud?'bad':'good'],
+      ['槳葉積冰程度',fmt(S.iceLv,0)+' %',S.iceLv>5?'bad':''],
+      ['升力損失',fmt(liftLoss,0)+' %',liftLoss>10?'bad':''],
+    ];
+  }
+};
+
+/* ============================================================
+   啟動
+   ============================================================ */
+const SCENARIOS=[sc1,sc2,sc3,sc4,sc5,sc6,sc7,sc8];
+const tabsEl=$('#tabs');
+SCENARIOS.forEach((sc,i)=>{
+  const b=document.createElement('button');
+  b.className='tab';b.textContent=sc.tab;
+  b.onclick=()=>selectScenario(i);
+  tabsEl.appendChild(b);
+});
+
+$('#fsBtn').onclick=()=>{
+  const de=document.documentElement;
+  const isFs=document.fullscreenElement||document.webkitFullscreenElement;
+  if(isFs){
+    (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+  }else{
+    const rq=de.requestFullscreen||de.webkitRequestFullscreen;
+    if(rq){const r=rq.call(de);if(r&&r.catch)r.catch(()=>{});}
+    else document.body.classList.toggle('fsmode'); // iOS Safari 備用：隱藏頁首
+  }
+};
+document.addEventListener('fullscreenchange',()=>{
+  document.body.classList.toggle('fsmode',!!document.fullscreenElement);
+});
+$('#panelToggle').onclick=()=>{
+  document.body.classList.toggle('panel-min');
+  $('#panelToggle').textContent=document.body.classList.contains('panel-min')?'☰ 展開':'☰ 收合';
+};
+
+selectScenario(0);
+let frame=0;
+function animate(){
+  requestAnimationFrame(animate);
+  sizeRenderer();
+  const dt=Math.min(clock.getDelta(),0.06);
+  if(SC){
+    const rows=SC.update(dt,P,ctxObj)||[];
+    if(++frame%6===0)renderHUD(rows);
+  }
+  controls.update();
+  renderer.render(scene,camera);
+}
+animate();
+</script>
+</body>
+</html>
