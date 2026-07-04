@@ -18,6 +18,7 @@ body{
   font-family:"Microsoft JhengHei","Noto Sans TC","PingFang TC",system-ui,sans-serif;
   overflow:hidden; overscroll-behavior:none;
 }
+@supports (height:100dvh){html,body{height:100dvh}}
 header{
   display:flex;align-items:center;gap:8px;padding:6px 10px;
   border-bottom:1px solid var(--line);background:#0d1523;flex:0 0 auto;
@@ -38,8 +39,8 @@ header h1 small{color:var(--sub);font-weight:400}
 }
 #fsBtn:hover,#wxBtn:hover{border-color:var(--acc)}
 main{flex:1;display:flex;min-height:0}
-#stage{flex:1;position:relative;min-width:0;background:#000}
-canvas#c{width:100%;height:100%;display:block;touch-action:none}
+#stage{flex:1;position:relative;min-width:0;min-height:0;overflow:hidden;background:#000}
+canvas#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 #hud{
   position:absolute;top:10px;left:10px;max-width:min(62vw,260px);
   background:rgba(8,14,24,.68);backdrop-filter:blur(4px);
@@ -116,6 +117,14 @@ details.know b{color:#e8f2fc}
 .bar .bf{height:100%;border-radius:5px;transition:width .15s;min-width:0}
 footer#credit{font-size:11px;color:#546a82;margin-top:10px;line-height:1.6}
 body.fsmode header{display:none}
+#wxTag{
+  position:absolute;top:10px;right:10px;z-index:4;display:none;align-items:center;gap:8px;
+  background:rgba(14,116,144,.88);border:1px solid var(--acc);border-radius:999px;
+  padding:5px 6px 5px 12px;font-size:12px;color:#e0feff;max-width:70vw;
+}
+#wxTag span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#wxTagOff{background:rgba(8,15,26,.4);border:none;color:#e0feff;border-radius:999px;
+  padding:3px 9px;cursor:pointer;font-size:12px;font-family:inherit}
 #wxModal{position:fixed;inset:0;background:rgba(4,8,14,.72);display:none;align-items:center;justify-content:center;z-index:50;padding:12px}
 #wxCard{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:min(560px,96vw);max-height:92vh;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
 #wxHead{display:flex;justify-content:space-between;align-items:center;font-size:15px}
@@ -157,6 +166,7 @@ body.fsmode header{display:none}
     <div id="hud"></div>
     <div id="banner"></div>
     <div id="legend"></div>
+    <div id="wxTag"><span id="wxTagTxt"></span><button id="wxTagOff" title="恢復預設參數">✕ 關閉</button></div>
     <div id="viewHint">🖱️ 拖曳旋轉｜滾輪縮放｜右鍵平移（觸控：單指轉、雙指縮放平移）</div>
   </div>
   <aside id="panel">
@@ -495,7 +505,11 @@ function buildPanel(sc){
 }
 
 /* ---------- 分頁切換 ---------- */
+let CUR_IDX=0;
 function selectScenario(idx){
+  CUR_IDX=idx;
+  const tag=document.getElementById('wxTag');
+  if(tag)tag.style.display='none';
   if(scene)disposeScene(scene);
   SC=SCENARIOS[idx];
   scene=baseScene(SC.sceneOpt||{});
@@ -1719,11 +1733,16 @@ function wxApply(){
   const map=SC.weather||{};
   let n=0;
   for(const pid in map)if(setParam(pid,WX[map[pid]]))n++;
-  $('#wxInfo').innerHTML+=n?
-    '<br>✅ 已把當地天氣套用到「'+SC.tab+'」的 '+n+' 個參數！':
-    '<br>ℹ️ 目前分頁沒有可對應的天氣參數（請切到 ⑥⑦⑧ 或 ②③⑤ 分頁再套用）。';
+  if(n){
+    $('#wxTagTxt').textContent='🌦 真實天氣：'+(WX.label||fmt(WX.lat,2)+'°, '+fmt(WX.lon,2)+'°');
+    $('#wxTag').style.display='flex';
+    wxModal.style.display='none';
+  }else{
+    $('#wxInfo').innerHTML+='<br>ℹ️ 目前分頁沒有可對應的天氣參數（請切到 ⑥⑦⑧ 或 ②③⑤ 分頁再套用）。';
+  }
 }
 $('#wxBtn').onclick=wxOpen;
+$('#wxTagOff').onclick=()=>{selectScenario(CUR_IDX);};
 $('#wxClose').onclick=()=>{wxModal.style.display='none';};
 wxModal.addEventListener('click',e=>{if(e.target===wxModal)wxModal.style.display='none';});
 $('#wxApply').onclick=wxApply;
