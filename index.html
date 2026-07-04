@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>操作無人機學自然｜3D 模擬實驗室</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{
   --bg:#0b111c; --panel:#0f1826; --line:#1d2c42; --txt:#dfe9f5; --sub:#8fa6bd;
@@ -31,11 +32,11 @@ header h1 small{color:var(--sub);font-weight:400}
   background:#152134;border:1px solid #24344a;color:#9fb3c8;font-size:13px;font-family:inherit;
 }
 .tab.on{background:var(--acc2);color:#fff;border-color:var(--acc);font-weight:700}
-#fsBtn{
+#fsBtn,#wxBtn{
   flex:0 0 auto;background:#152134;border:1px solid #2a3d57;color:var(--txt);
   border-radius:8px;padding:7px 11px;cursor:pointer;font-size:13px;font-family:inherit;
 }
-#fsBtn:hover{border-color:var(--acc)}
+#fsBtn:hover,#wxBtn:hover{border-color:var(--acc)}
 main{flex:1;display:flex;min-height:0}
 #stage{flex:1;position:relative;min-width:0;background:#000}
 canvas#c{width:100%;height:100%;display:block;touch-action:none}
@@ -68,11 +69,12 @@ canvas#c{width:100%;height:100%;display:block;touch-action:none}
 }
 #panel{
   width:350px;flex:0 0 auto;overflow-y:auto;background:var(--panel);
-  border-left:1px solid var(--line);padding:12px 14px 24px;scrollbar-width:thin;
+  border-left:1px solid var(--line);padding:0 14px 24px;scrollbar-width:thin;
 }
 #panel::-webkit-scrollbar{width:6px}
 #panel::-webkit-scrollbar-thumb{background:#22344c;border-radius:3px}
-#panelHead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+#panelHead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;
+  position:sticky;top:0;z-index:6;background:var(--panel);padding:12px 0 6px;margin-bottom:2px}
 #scTitle{font-size:15px;margin:0 0 8px;color:#e8f2fc;line-height:1.4}
 #panelToggle{
   display:none;background:#152134;border:1px solid #2a3d57;color:var(--txt);
@@ -114,16 +116,28 @@ details.know b{color:#e8f2fc}
 .bar .bf{height:100%;border-radius:5px;transition:width .15s;min-width:0}
 footer#credit{font-size:11px;color:#546a82;margin-top:10px;line-height:1.6}
 body.fsmode header{display:none}
+#wxModal{position:fixed;inset:0;background:rgba(4,8,14,.72);display:none;align-items:center;justify-content:center;z-index:50;padding:12px}
+#wxCard{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:min(560px,96vw);max-height:92vh;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+#wxHead{display:flex;justify-content:space-between;align-items:center;font-size:15px}
+#wxClose{background:none;border:none;color:var(--sub);font-size:18px;cursor:pointer}
+#wxRow{display:flex;gap:6px;flex-wrap:wrap}
+#wxQ{flex:1;min-width:140px;background:#152134;border:1px solid #2a3d57;color:var(--txt);border-radius:9px;padding:8px;font-size:13px;font-family:inherit}
+#wxMapDiv{height:240px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+#wxInfo{font-size:13px;line-height:1.7;background:#0c1420;border:1px solid #1c2b40;border-radius:10px;padding:9px 12px;color:#c6d4e3}
+#wxRow2{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#wxApply:disabled{opacity:.45;cursor:default}
+#wxNote{font-size:11px;color:#6b8299;flex:1;line-height:1.5}
 @media (max-width:880px){
   header h1 small{display:none}
   header h1{font-size:13px}
   main{flex-direction:column}
   #panel{
     width:auto;height:46%;border-left:none;border-top:1px solid var(--line);
-    padding:10px 14px 30px;
+    padding:0 14px 30px;
   }
   #panelToggle{display:block}
-  body.panel-min #panel{height:46px;overflow:hidden;padding-top:8px}
+  body.panel-min #panel{height:auto;overflow:hidden;padding-bottom:8px}
+  body.panel-min #panel>*:not(#panelHead){display:none !important}
   #hud{font-size:11px;padding:6px 8px}
   #legend{font-size:11px;bottom:8px}
   #viewHint{display:none}
@@ -134,6 +148,7 @@ body.fsmode header{display:none}
 <header>
   <h1>🛸 操作無人機學自然 <small>｜3D 模擬實驗室</small></h1>
   <nav id="tabs"></nav>
+  <button id="wxBtn" title="即時天氣">🌦 天氣</button>
   <button id="fsBtn" title="全螢幕">⛶ 全螢幕</button>
 </header>
 <main>
@@ -157,6 +172,23 @@ body.fsmode header{display:none}
     <footer id="credit">依據「操作無人機學自然」課程教案製作｜物理×地球科學 互動模擬教材<br>畫面中的力與氣流為教學示意，數值採用簡化模型計算。</footer>
   </aside>
 </main>
+<div id="wxModal">
+  <div id="wxCard">
+    <div id="wxHead"><b>🌦 取得真實天氣資料</b><button id="wxClose">✕</button></div>
+    <div id="wxRow">
+      <button class="abtn" id="wxLocBtn">📍 使用我的位置</button>
+      <input id="wxQ" placeholder="搜尋地點（如：玉山、台北、東京）">
+      <button class="abtn" id="wxSearchBtn">🔎 搜尋</button>
+    </div>
+    <div id="wxMapDiv"></div>
+    <div id="wxInfo">點地圖任一位置、搜尋地點，或使用裝置定位，取得當地即時天氣。</div>
+    <div id="wxRow2">
+      <button class="abtn on" id="wxApply" disabled>✅ 套用到目前分頁</button>
+      <span id="wxNote">資料來源：Open-Meteo 免費即時氣象｜定位需 https 網頁＋位置權限｜可套用分頁：②③⑤⑥⑦⑧</span>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
 <script>
@@ -182,7 +214,7 @@ const controls=new THREE.OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true; controls.dampingFactor=0.09;
 controls.maxPolarAngle=Math.PI*0.495; controls.minDistance=1.2; controls.maxDistance=90;
 const clock=new THREE.Clock();
-let scene=null, SC=null, P={}, ctxObj=null;
+let scene=null, SC=null, P={}, PARAM_EL={}, ctxObj=null;
 
 function sizeRenderer(){
   const w=canvas.clientWidth|0, h=canvas.clientHeight|0;
@@ -424,7 +456,7 @@ function buildPanel(sc){
   });
   const dEl=$('#dparams'),eEl=$('#eparams');
   dEl.innerHTML='';eEl.innerHTML='';
-  P={};
+  P={};PARAM_EL={};
   let dCount=0,eCount=0;
   sc.params.forEach(def=>{
     const wrap=document.createElement('div');wrap.className='param';
@@ -438,10 +470,13 @@ function buildPanel(sc){
         sel.appendChild(op);
       });
       sel.oninput=()=>{P[def.id]=sel.value;};
+      PARAM_EL[def.id]={type:'select',el:sel};
       wrap.appendChild(sel);
     }else if(def.type==='toggle'){
       wrap.innerHTML=`<label class="tgl"><input type="checkbox" ${def.value?'checked':''}><em>${def.label}</em></label>`;
-      wrap.querySelector('input').oninput=e=>{P[def.id]=e.target.checked;};
+      const cb=wrap.querySelector('input');
+      cb.oninput=e=>{P[def.id]=e.target.checked;};
+      PARAM_EL[def.id]={type:'toggle',el:cb};
     }else{
       wrap.innerHTML=`<label><em>${def.label}</em><span class="val"></span></label>
         <input type="range" min="${def.min}" max="${def.max}" step="${def.step}" value="${def.value}">`;
@@ -449,6 +484,7 @@ function buildPanel(sc){
       const show=v=>{val.textContent=(def.fmt?def.fmt(v):v)+(def.unit||'');};
       show(def.value);
       inp.oninput=()=>{P[def.id]=parseFloat(inp.value);show(P[def.id]);};
+      PARAM_EL[def.id]={type:'range',el:inp,show,min:def.min,max:def.max};
     }
     if(def.env){eEl.appendChild(wrap);eCount++;}
     else{dEl.appendChild(wrap);dCount++;}
@@ -579,6 +615,7 @@ const sc2={
   title:'第2堂｜物理：流體力學與空氣動力學（柏努利定律）',
   legend:['lift','wind'],
   sceneOpt:{ground:false,bg:0x0c1524},
+  weather:{rho:'rho'},
   camera:{pos:[0.5,2.2,7],target:[0,1.6,0]},
   knowledge:`<ul>
     <li><b>翼型（槳葉剖面）</b>：上凸下平 → 上方氣流路徑長、<b>流速快</b>；下方流速慢。</li>
@@ -697,6 +734,7 @@ const sc2={
    ============================================================ */
 const sc3={
   tab:'③ 摩擦與阻力',
+  weather:{rho:'rho'},
   title:'第3堂｜物理：摩擦力與阻力（四種空氣阻力）',
   legend:['drag','thrust','wind'],
   sceneOpt:{bg:0x0c1524},
@@ -935,6 +973,7 @@ const sc4={
    ============================================================ */
 const sc5={
   tab:'⑤ 能量與能源',
+  weather:{temp:'temp'},
   title:'第5堂｜物理／化學：能量與能源（能量轉換與守恆）',
   legend:['lift','gravity'],
   camera:{pos:[4,3,6],target:[0,2,0]},
@@ -1043,6 +1082,7 @@ const sc5={
    ============================================================ */
 const sc6={
   tab:'⑥ 大氣壓力',
+  weather:{h:'elev',T0:'temp',RH:'rh'},
   title:'第6堂｜地球科學：大氣壓力與空氣密度（密度高度）',
   legend:['lift','gravity'],
   sceneOpt:{groundColor:0x2d3a2f},
@@ -1148,6 +1188,7 @@ const sc6={
    ============================================================ */
 const sc7={
   tab:'⑦ 風與亂流',
+  weather:{wind:'windMs',wdir:'windDir',gustA:'gust'},
   title:'第7堂｜地球科學：風與亂流（風向、風切與背風亂流）',
   legend:['wind','rel','thrust'],
   camera:{pos:[7,5,9],target:[0,1.5,0]},
@@ -1356,6 +1397,7 @@ const sc7={
    ============================================================ */
 const sc8={
   tab:'⑧ 濕度與積冰',
+  weather:{T0:'temp',RH:'rh',rain:'rain',storm:'storm'},
   title:'第9＋12堂｜地球科學：濕度露點、雲霧形成與積冰雷雨',
   legend:['lift','gravity'],
   sceneOpt:{bg:0x101d30},
@@ -1558,8 +1600,136 @@ document.addEventListener('fullscreenchange',()=>{
 });
 $('#panelToggle').onclick=()=>{
   document.body.classList.toggle('panel-min');
+  $('#panel').scrollTop=0;
   $('#panelToggle').textContent=document.body.classList.contains('panel-min')?'☰ 展開':'☰ 收合';
 };
+
+
+/* ============================================================
+   真實天氣資料（Open-Meteo 免金鑰 + OpenStreetMap 地圖）
+   ============================================================ */
+let WX=null,wxMap=null,wxMarker=null;
+const wxModal=$('#wxModal');
+const WMO={0:'晴朗',1:'大致晴朗',2:'局部多雲',3:'陰天',45:'霧',48:'霧凇',51:'毛毛雨',53:'毛毛雨',55:'毛毛雨',56:'凍毛毛雨',57:'凍毛毛雨',61:'小雨',63:'中雨',65:'大雨',66:'凍雨',67:'凍雨',71:'小雪',73:'中雪',75:'大雪',77:'雪粒',80:'陣雨',81:'陣雨',82:'強陣雨',85:'陣雪',86:'陣雪',95:'雷雨',96:'雷雨夾雹',99:'強雷雨夾雹'};
+function wxOpen(){
+  wxModal.style.display='flex';
+  if(!wxMap&&window.L){
+    wxMap=L.map('wxMapDiv').setView([23.7,121],7);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {maxZoom:18,attribution:'© OpenStreetMap'}).addTo(wxMap);
+    wxMap.on('click',e=>wxFetch(e.latlng.lat,e.latlng.lng));
+  }
+  setTimeout(()=>{if(wxMap)wxMap.invalidateSize();},100);
+}
+function fetchT(url,ms){
+  const ac=new AbortController();const t=setTimeout(()=>ac.abort(),ms);
+  return fetch(url,{signal:ac.signal}).finally(()=>clearTimeout(t));
+}
+async function fetchOM(lat,lon){
+  const url='https://api.open-meteo.com/v1/forecast?latitude='+lat.toFixed(4)+'&longitude='+lon.toFixed(4)
+    +'&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,weather_code'
+    +'&wind_speed_unit=ms&timezone=auto';
+  const j=await(await fetchT(url,9000)).json();
+  const cu=j.current;
+  const code=cu.weather_code;
+  return {elev:(j.elevation===undefined?null:j.elevation),
+    temp:cu.temperature_2m,rh:cu.relative_humidity_2m,pres:cu.surface_pressure,
+    windMs:cu.wind_speed_10m,windDir:cu.wind_direction_10m,
+    gust:Math.max(0,(cu.wind_gusts_10m||cu.wind_speed_10m)-cu.wind_speed_10m),
+    precip:cu.precipitation||0,desc:WMO[code]||'—',
+    rain:(cu.precipitation||0)>0.05||(code>=51&&code<=82),
+    storm:code>=95?'mat':'none'};
+}
+async function fetchWTTR(lat,lon){
+  const j=await(await fetchT('https://wttr.in/'+lat.toFixed(3)+','+lon.toFixed(3)+'?format=j1&lang=zh-tw',20000)).json();
+  const c=j.current_condition[0];
+  const code=parseInt(c.weatherCode);
+  let gust=0;
+  try{gust=Math.max(0,(parseFloat(j.weather[0].hourly[0].WindGustKmph)-parseFloat(c.windspeedKmph))/3.6);}catch(e){}
+  let desc='—';
+  try{desc=(c['lang_zh-tw']&&c['lang_zh-tw'][0].value)||c.weatherDesc[0].value;}catch(e){}
+  const precip=parseFloat(c.precipMM)||0;
+  return {elev:null,temp:parseFloat(c.temp_C),rh:parseFloat(c.humidity),pres:parseFloat(c.pressure),
+    windMs:parseFloat(c.windspeedKmph)/3.6,windDir:parseFloat(c.winddirDegree),
+    gust,precip,desc,
+    rain:precip>0.05||[176,179,263,266,281,284,293,296,299,302,305,308,311,314,317,320,353,356,359,362,365].indexOf(code)>=0,
+    storm:[200,386,389,392,395].indexOf(code)>=0?'mat':'none'};
+}
+async function wxFetch(lat,lon,label,elevHint){
+  $('#wxInfo').innerHTML='⏳ 取得天氣資料中…';
+  let d=null,src='Open-Meteo';
+  try{d=await fetchOM(lat,lon);}
+  catch(e1){
+    $('#wxInfo').innerHTML='⏳ 主要氣象來源無回應，改用備援來源…';
+    try{d=await fetchWTTR(lat,lon);src='wttr.in（備援）';}
+    catch(e2){
+      $('#wxInfo').innerHTML='❌ 兩個氣象來源都無法連線，請確認網路後再試。';
+      return;
+    }
+  }
+  if(d.elev===null&&elevHint!==undefined)d.elev=elevHint;
+  WX=Object.assign({lat,lon,label:label||''},d);
+  WX.rho=airDensity(WX.pres,WX.temp,WX.rh);
+  if(wxMap){
+    if(wxMarker)wxMarker.setLatLng([lat,lon]);
+    else wxMarker=L.marker([lat,lon]).addTo(wxMap);
+    wxMap.setView([lat,lon],Math.max(wxMap.getZoom(),9));
+  }
+  const dirName=['北','東北','東','東南','南','西南','西','西北'][Math.round(WX.windDir/45)%8];
+  $('#wxInfo').innerHTML=
+    '<b>'+(label||fmt(lat,3)+'°, '+fmt(lon,3)+'°')+'</b>'
+    +(WX.elev!==null&&WX.elev!==undefined?'（海拔 '+fmt(WX.elev,0)+' m）':'')+'｜'+WX.desc+'<br>'
+    +'🌡️ '+fmt(WX.temp,1)+'°C　💧濕度 '+fmt(WX.rh,0)+'%　氣壓 '+fmt(WX.pres,0)+' hPa<br>'
+    +'💨 風 '+fmt(WX.windMs,1)+' m/s（'+dirName+'風）　陣風 +'+fmt(WX.gust,1)+' m/s　'
+    +(WX.rain?'🌧️ 有降水':'☀️ 無降水')+(WX.storm==='mat'?'　⛈️ 雷雨！':'')+'<br>'
+    +'➜ 換算空氣密度 '+fmt(WX.rho,3)+' kg/m³　<i style="color:#6b8299">來源：'+src+'</i>';
+  $('#wxApply').disabled=false;
+}
+async function wxSearch(){
+  const q=$('#wxQ').value.trim();if(!q)return;
+  $('#wxInfo').innerHTML='⏳ 搜尋地點中…';
+  try{
+    const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(q)+'&count=1&language=zh');
+    const j=await r.json();
+    if(j.results&&j.results.length){
+      const g=j.results[0];
+      wxFetch(g.latitude,g.longitude,(g.name||q)+(g.admin1?'・'+g.admin1:'')+(g.country?'（'+g.country+'）':''),g.elevation);
+    }else $('#wxInfo').innerHTML='❌ 找不到這個地點，換個關鍵字試試（建議用城市或山名）。';
+  }catch(e){$('#wxInfo').innerHTML='❌ 搜尋失敗，請確認網路連線。';}
+}
+function wxLocate(){
+  if(!navigator.geolocation){$('#wxInfo').innerHTML='❌ 此瀏覽器不支援定位。';return;}
+  $('#wxInfo').innerHTML='⏳ 定位中…（請允許位置權限）';
+  navigator.geolocation.getCurrentPosition(
+    ps=>wxFetch(ps.coords.latitude,ps.coords.longitude,'📍 我的位置'),
+    e=>{$('#wxInfo').innerHTML='❌ 定位失敗：'+(e.code===1?'未授權位置權限':'無法取得位置')+'。可改用搜尋或直接點地圖。';},
+    {timeout:10000});
+}
+function setParam(id,val){
+  const pe=PARAM_EL[id];if(!pe||val===undefined||val===null)return false;
+  if(pe.type==='range'){
+    val=clamp(val,pe.min,pe.max);
+    pe.el.value=val;P[id]=parseFloat(pe.el.value);pe.show(P[id]);
+  }else if(pe.type==='toggle'){pe.el.checked=!!val;P[id]=!!val;}
+  else{pe.el.value=val;P[id]=val;}
+  return true;
+}
+function wxApply(){
+  if(!WX||!SC)return;
+  const map=SC.weather||{};
+  let n=0;
+  for(const pid in map)if(setParam(pid,WX[map[pid]]))n++;
+  $('#wxInfo').innerHTML+=n?
+    '<br>✅ 已把當地天氣套用到「'+SC.tab+'」的 '+n+' 個參數！':
+    '<br>ℹ️ 目前分頁沒有可對應的天氣參數（請切到 ⑥⑦⑧ 或 ②③⑤ 分頁再套用）。';
+}
+$('#wxBtn').onclick=wxOpen;
+$('#wxClose').onclick=()=>{wxModal.style.display='none';};
+wxModal.addEventListener('click',e=>{if(e.target===wxModal)wxModal.style.display='none';});
+$('#wxApply').onclick=wxApply;
+$('#wxLocBtn').onclick=wxLocate;
+$('#wxSearchBtn').onclick=wxSearch;
+$('#wxQ').addEventListener('keydown',e=>{if(e.key==='Enter')wxSearch();});
 
 selectScenario(0);
 let frame=0;
